@@ -14,8 +14,9 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# lib/ and lib64/ are Python venv dirs — but this project's /lib is Next.js source
 lib64/
+# lib/ intentionally tracked (Next.js source code)
 parts/
 sdist/
 var/
