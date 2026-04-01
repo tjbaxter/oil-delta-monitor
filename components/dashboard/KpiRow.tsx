@@ -165,6 +165,7 @@ export default function KpiRow({
                 : "Awaiting historical trade prices"
         }
         accentClass="accent-poly"
+        valueClassName="kpi-value-poly"
       />
       <KpiCard
         label={fairCardLabel}
@@ -189,7 +190,7 @@ export default function KpiRow({
                 : "Awaiting crude-linked fair value"
         }
         accentClass={fairPaused ? "accent-neutral" : "accent-theo"}
-        valueClassName={fairPaused ? "kpi-value-neutral" : undefined}
+        valueClassName={fairPaused ? "kpi-value-neutral" : "kpi-value-theo"}
       />
       <KpiCard
         label={gapCardLabel}

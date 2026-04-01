@@ -447,6 +447,14 @@ main {
   color: #d7e3f3;
 }
 
+.kpi-value-poly {
+  color: var(--poly);
+}
+
+.kpi-value-theo {
+  color: var(--theo);
+}
+
 .charts-grid {
   display: grid;
   grid-template-columns: 1.05fr 1fr;
