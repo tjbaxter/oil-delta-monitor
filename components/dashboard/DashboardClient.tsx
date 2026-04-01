@@ -864,7 +864,7 @@ export default function DashboardClient({
     return uniqueMessages([
       isLoading
         ? liveMode
-          ? "Loading locally recorded live snapshot..."
+          ? "Loading live snapshot..."
           : "Loading delayed Databento + Polymarket historical window..."
         : null,
       isRefreshing

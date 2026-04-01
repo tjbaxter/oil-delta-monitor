@@ -17,7 +17,7 @@ export default function EmptyStatePanels({
         <>
           {liveMode ? (
             <>
-              <span>1) reading locally recorded live snapshot</span>
+              <span>1) reading live snapshot</span>
               <span>2) waiting for the ingestor to seed CL + Kalshi state</span>
               <span>3) recomputing fair value and delta locally</span>
             </>

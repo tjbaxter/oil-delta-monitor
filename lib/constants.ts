@@ -40,7 +40,7 @@ export const DASHBOARD_TITLE =
   "CL DELTA SCOPE - KALSHI WTI DAILY VS CALL SPREAD FAIR VALUE";
 export const DASHBOARD_SUBTITLE = "Intraday options analytics, T+1 delayed";
 export const LIVE_DASHBOARD_SUBTITLE =
-  "Real-time Kalshi WTI dislocation monitor, locally recorded";
+  "Real-time Kalshi WTI dislocation monitor";
 
 export const LIVE_SNAPSHOT_RELATIVE_PATH = "data/live_snapshot.json";
 export const LIVE_SNAPSHOT_POLL_INTERVAL_MS = 1_000;
