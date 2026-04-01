@@ -587,6 +587,24 @@ export default function DashboardClient({
   const prevCrudeFeedStateRef = useRef<string | null>(null);
   const reconnectGraceEndRef = useRef<number>(0);
 
+  // On first mount: if the feed was alive within the last 60s but is currently
+  // reconnecting, set a grace period so the banner doesn't flash immediately.
+  const initialDatabentoLastEventTs = payload?.sourceStatus?.databento.lastEventTs ?? null;
+  useEffect(() => {
+    if (
+      crudeFeedState &&
+      crudeFeedState !== "connected" &&
+      initialDatabentoLastEventTs !== null
+    ) {
+      const ageMs = Date.now() - initialDatabentoLastEventTs;
+      if (ageMs >= 0 && ageMs < 60_000) {
+        reconnectGraceEndRef.current = Date.now() + 90_000;
+      }
+    }
+    prevCrudeFeedStateRef.current = crudeFeedState;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const prev = prevCrudeFeedStateRef.current;
     if (prev === "connected" && crudeFeedState && crudeFeedState !== "connected") {
