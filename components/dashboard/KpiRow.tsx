@@ -146,16 +146,14 @@ export default function KpiRow({
         label={liveMarketCardLabel}
         value={
           latestObservation?.polyProb !== null && latestObservation?.polyProb !== undefined
-            ? formatProb(latestObservation?.polyProb)
+            ? formatCents(latestObservation?.polyProb)
             : isLoading
               ? "Loading"
             : "Awaiting"
         }
         subtext={
           latestObservation?.polyProb !== null && latestObservation?.polyProb !== undefined
-            ? `${marketCardContext ? `${marketCardContext} | ` : ""}${formatCents(
-                latestObservation.polyProb
-              )} | ${polySourceLabel}${polyFreshness ? ` | ${polyFreshness} UTC` : ""}`
+            ? `implied prob ${formatProb(latestObservation.polyProb)} | ${marketCardContext ? `${marketCardContext} | ` : ""}${polySourceLabel}${polyFreshness ? ` | ${polyFreshness} UTC` : ""}`
             : isLoading
               ? mode === "live"
                 ? `Loading live ${marketVenueLabel} book...`
@@ -173,7 +171,7 @@ export default function KpiRow({
           fairPaused
             ? "Paused"
             : fairReady
-              ? formatProb(latestObservation?.fairProb)
+              ? formatCents(latestObservation?.fairProb)
               : isLoading
                 ? "Loading"
                 : "Awaiting"
@@ -182,7 +180,7 @@ export default function KpiRow({
           fairPaused
             ? fairPausedLabel
             : fairReady
-              ? fairCardSubtext
+              ? `fair prob ${formatProb(latestObservation?.fairProb)} | ${fairCardSubtext}`
               : isLoading
                 ? mode === "live"
                   ? "Recomputing live fair value..."
