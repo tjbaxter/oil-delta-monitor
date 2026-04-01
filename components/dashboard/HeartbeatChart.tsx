@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 
 import { BG_COLOR, PANEL_BG, POLY_COLOR, THEO_COLOR } from "@/lib/constants";
 import type { Observation } from "@/lib/types";
@@ -18,20 +18,37 @@ const Plot = dynamic(() => import("@/components/dashboard/PlotClient"), {
   loading: () => <div className="chart-loading">Loading chart...</div>
 });
 
+interface Bounds { min: number; max: number }
+const EMPTY_BOUNDS: Bounds = { min: Infinity, max: -Infinity };
+
 interface HeartbeatChartProps {
   observations: Observation[];
   crudeLabel: string;
   marketLegendLabel: string;
   pausedMessage?: string | null;
+  resetKey?: string;
 }
 
 export default function HeartbeatChart({
   observations,
   crudeLabel,
   marketLegendLabel,
-  pausedMessage
+  pausedMessage,
+  resetKey
 }: HeartbeatChartProps) {
+  // Ratcheted axis bounds: expand to fit new data, never shrink within a session.
+  // Refs are safe to mutate inside useMemo — they're not state and don't cause re-renders.
+  const probBoundsRef = useRef<Bounds>({ ...EMPTY_BOUNDS });
+  const crudeBoundsRef = useRef<Bounds>({ ...EMPTY_BOUNDS });
+  const prevResetKeyRef = useRef<string | undefined>(undefined);
+
   const { data, layout } = useMemo(() => {
+    // Reset when strike/market changes so the new range re-discovers bounds cleanly.
+    if (resetKey !== prevResetKeyRef.current) {
+      prevResetKeyRef.current = resetKey;
+      probBoundsRef.current = { ...EMPTY_BOUNDS };
+      crudeBoundsRef.current = { ...EMPTY_BOUNDS };
+    }
     const fairPaused = Boolean(pausedMessage);
     const hasPolyHistory = observations.some((observation) => observation.polyProb !== null);
     const hasCrude = observations.some((observation) => observation.crudePrice !== null);
@@ -51,21 +68,46 @@ export default function HeartbeatChart({
         : hasPolyHistory && !hasCrude && !hasTheo
         ? "Fair value and delta require delayed CME CL.c.0 history."
         : null;
-    const probabilityRange =
-      probabilityValues.length > 0
+    // Ratchet probability bounds: expand to fit, never shrink.
+    if (probabilityValues.length > 0) {
+      const dataMin = Math.min(...probabilityValues);
+      const dataMax = Math.max(...probabilityValues);
+      probBoundsRef.current = {
+        min: Math.min(probBoundsRef.current.min, dataMin),
+        max: Math.max(probBoundsRef.current.max, dataMax)
+      };
+    }
+    const probabilityRange: [number, number] | undefined =
+      probBoundsRef.current.min < probBoundsRef.current.max
         ? (() => {
-            const minProb = Math.min(...probabilityValues);
-            const maxProb = Math.max(...probabilityValues);
-            const dynamicPad = Math.max(PROBABILITY_PAD, (maxProb - minProb) * 0.08);
-            const lower = Math.max(0, minProb - dynamicPad);
-            const upper = Math.min(1, maxProb + dynamicPad);
+            const { min, max } = probBoundsRef.current;
+            const span = max - min;
+            const pad = Math.max(PROBABILITY_PAD, span * 0.08);
+            const lower = Math.max(0, min - pad);
+            const upper = Math.min(1, max + pad);
             if (upper - lower < PROBABILITY_PAD * 4) {
-              return [
-                Math.max(0, lower - PROBABILITY_PAD),
-                Math.min(1, upper + PROBABILITY_PAD)
-              ];
+              return [Math.max(0, lower - PROBABILITY_PAD), Math.min(1, upper + PROBABILITY_PAD)];
             }
             return [lower, upper];
+          })()
+        : undefined;
+
+    // Ratchet CL price bounds for right y-axis.
+    const crudePrices = observations
+      .map((o) => o.crudePrice)
+      .filter((v): v is number => v !== null && Number.isFinite(v));
+    if (crudePrices.length > 0) {
+      crudeBoundsRef.current = {
+        min: Math.min(crudeBoundsRef.current.min, Math.min(...crudePrices)),
+        max: Math.max(crudeBoundsRef.current.max, Math.max(...crudePrices))
+      };
+    }
+    const crudeRange: [number, number] | undefined =
+      crudeBoundsRef.current.min < crudeBoundsRef.current.max
+        ? (() => {
+            const { min, max } = crudeBoundsRef.current;
+            const pad = Math.max(0.05, (max - min) * 0.08);
+            return [min - pad, max + pad];
           })()
         : undefined;
 
@@ -217,7 +259,8 @@ export default function HeartbeatChart({
                 overlaying: "y",
                 side: "right",
                 showgrid: false,
-                tickfont: { family: MONO_FONT, size: 10, color: MUTED_TICK }
+                tickfont: { family: MONO_FONT, size: 10, color: MUTED_TICK },
+                range: crudeRange
               }
             }
           : {}),
@@ -251,7 +294,7 @@ export default function HeartbeatChart({
         uirevision: "heartbeat"
       }
     };
-  }, [crudeLabel, marketLegendLabel, observations, pausedMessage]);
+  }, [crudeLabel, marketLegendLabel, observations, pausedMessage, resetKey]);
 
   return (
     <div className="chart-panel">

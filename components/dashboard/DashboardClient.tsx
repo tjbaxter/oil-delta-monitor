@@ -1226,11 +1226,13 @@ export default function DashboardClient({
               crudeLabel={payload?.crudeLabel ?? "CME CL.c.0 (Databento)"}
               marketLegendLabel={marketLegendLabel}
               pausedMessage={crudeFeedPauseMessage}
+              resetKey={`${marketInstrument}-${strike}`}
             />
             <ScatterDeltaChart
               observations={displayChartObservations}
               marketLegendLabel={marketLegendLabel}
               pausedMessage={crudeFeedPauseMessage}
+              resetKey={`${marketInstrument}-${strike}`}
             />
           </section>
 
