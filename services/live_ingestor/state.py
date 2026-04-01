@@ -263,7 +263,13 @@ def _nearest_crude_point_at_or_before(
             candidate = point
         else:
             break
-    return candidate
+    if candidate is not None:
+        return candidate
+    # No CL point at or before this timestamp.  Kalshi trade history is seeded
+    # many hours back, but Databento replay only covers a short window.  Use
+    # the earliest available CL price so those historical Kalshi ticks still
+    # get a fair-value computation and the orange line spans the full chart.
+    return crude_history[0] if crude_history else None
 
 
 def build_observations(
@@ -1098,6 +1104,15 @@ class LiveState:
             crude_history = list(self.crude_history)
             poly_history = list(self.poly_history)
             warnings = list(self.warnings)
+
+        # Trim both raw histories to the presentation window so the snapshot
+        # stays small regardless of how long the session has been running.
+        now_ms = utc_now_ms()
+        window_cutoff_ms = now_ms - self.config.presentation_window_ms
+        crude_history = [p for p in crude_history if p["timestamp"] >= window_cutoff_ms]
+        poly_history = [p for p in poly_history if p["timestamp"] >= window_cutoff_ms]
+
+        with self.lock:
             databento_status = self.databento_status.as_dict()
             kalshi_status = self.kalshi_status.as_dict()
             snapshot_written_at = to_iso_z(self.snapshot_written_at)

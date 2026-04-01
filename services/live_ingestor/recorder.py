@@ -19,7 +19,7 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
         dir=path.parent,
         delete=False,
     ) as handle:
-        json.dump(payload, handle, indent=2)
+        json.dump(payload, handle)
         handle.write("\n")
         temp_path = Path(handle.name)
     temp_path.replace(path)
@@ -128,10 +128,48 @@ class Recorder:
         self.last_snapshot_write_ms = now_ms
         return snapshot
 
+    def _rotate_observations_file(self, path: Path, max_age_ms: int) -> None:
+        """Drop lines from the JSONL file that are older than max_age_ms."""
+        if not path.exists():
+            return
+        cutoff = utc_now_ms() - max_age_ms
+        kept: list[str] = []
+        try:
+            with path.open("r", encoding="utf-8") as fh:
+                for line in fh:
+                    stripped = line.strip()
+                    if not stripped:
+                        continue
+                    try:
+                        rec = json.loads(stripped)
+                        ts = rec.get("recordedAt") or rec.get("timestamp") or 0
+                        if int(ts) >= cutoff:
+                            kept.append(stripped)
+                    except Exception:
+                        kept.append(stripped)
+        except OSError:
+            return
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", dir=path.parent, delete=False
+        ) as tmp:
+            for line in kept:
+                tmp.write(line + "\n")
+            tmp_path = Path(tmp.name)
+        tmp_path.replace(path)
+
     def run_forever(self) -> None:
         sleep_seconds = max(self.config.snapshot_write_interval_ms / 4000.0, 0.25)
+        _three_days_ms = 3 * 24 * 60 * 60 * 1000
+        _rotation_interval_s = 6 * 60 * 60  # rotate obs file every 6 hours
+        _last_rotation = 0.0
         while True:
             self.state.mark_staleness()
             appended = self.maybe_append_observation()
             self.write_snapshot(force=appended)
+            now = time.monotonic()
+            if now - _last_rotation >= _rotation_interval_s:
+                self._rotate_observations_file(
+                    self.config.paths.live_observations_path, _three_days_ms
+                )
+                _last_rotation = now
             time.sleep(sleep_seconds)
