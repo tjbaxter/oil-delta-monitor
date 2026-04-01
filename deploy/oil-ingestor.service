@@ -1,0 +1,19 @@
+[Unit]
+Description=Oil Delta Monitor — Live Ingestor (Databento + Kalshi)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=REPLACE_WITH_YOUR_USER
+WorkingDirectory=/home/REPLACE_WITH_YOUR_USER/oil-delta-monitor
+EnvironmentFile=/home/REPLACE_WITH_YOUR_USER/oil-delta-monitor/.env.local
+ExecStart=/home/REPLACE_WITH_YOUR_USER/oil-delta-monitor/.venv/bin/python services/live_ingestor/main.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=oil-ingestor
+
+[Install]
+WantedBy=multi-user.target

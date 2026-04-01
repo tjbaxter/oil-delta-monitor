@@ -1,0 +1,19 @@
+[Unit]
+Description=Oil Delta Monitor — Next.js Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=REPLACE_WITH_YOUR_USER
+WorkingDirectory=/home/REPLACE_WITH_YOUR_USER/oil-delta-monitor
+Environment=NODE_ENV=production
+Environment=PORT=3000
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=oil-dashboard
+
+[Install]
+WantedBy=multi-user.target

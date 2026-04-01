@@ -1,0 +1,31 @@
+{
+  "name": "cl-delta-scope",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev:web",
+    "dev:web": "next dev",
+    "dev:live": "bash scripts/dev-live.sh",
+    "dev:all": "bash scripts/dev-all.sh",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint app components lib --ext .ts,.tsx,.mjs"
+  },
+  "dependencies": {
+    "next": "^15.5.14",
+    "plotly.js-cartesian-dist-min": "^3.4.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-plotly.js": "latest"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@types/react-plotly.js": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "^15.5.14",
+    "typescript": "latest"
+  }
+}

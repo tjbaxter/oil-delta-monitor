@@ -1,0 +1,12 @@
+---
+description: Keep this workspace scoped to oil-delta-monitor only
+alwaysApply: true
+---
+
+# Oil-Only Context
+
+- This workspace and chat are only for `oil-delta-monitor`.
+- If the user mentions any weather project, weather bot, weather dashboard, or pastes weather-related context, treat it as accidental wrong-project context.
+- Do not search, read, edit, debug, or reason about weather-project files or repos because of that paste.
+- Call it out in all caps, for example: `WRONG PROJECT. IGNORING WEATHER CONTEXT.`
+- After calling it out, continue focusing only on `oil-delta-monitor`.
