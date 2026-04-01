@@ -234,27 +234,6 @@ def classify_signal(
     return "Neutral"
 
 
-def _decimate_history(points: list[dict[str, Any]], max_points: int) -> list[dict[str, Any]]:
-    """Time-bucket decimation for snapshot serialization.
-
-    Reduces a dense tick series to at most max_points by bucketing into equal
-    time intervals and keeping the last (most recent) point per bucket.  This
-    preserves the shape of the series while dramatically shrinking payload size.
-    The full-resolution data is retained in the in-memory deque — only the
-    serialized snapshot is decimated.
-    """
-    if len(points) <= max_points:
-        return points
-    if len(points) < 2:
-        return points
-    total_span = points[-1]["timestamp"] - points[0]["timestamp"]
-    bucket_ms = max(1, total_span // max_points)
-    buckets: dict[int, dict[str, Any]] = {}
-    for point in points:
-        bucket_key = point["timestamp"] // bucket_ms
-        buckets[bucket_key] = point  # last tick in bucket wins
-    return sorted(buckets.values(), key=lambda p: p["timestamp"])
-
 
 def _dedupe_points(points: list[dict[str, Any]], max_points: int) -> list[dict[str, Any]]:
     sorted_points = sorted(points, key=lambda point: point["timestamp"])
@@ -1135,8 +1114,6 @@ class LiveState:
         window_cutoff_ms = now_ms - self.config.presentation_window_ms
         crude_history = [p for p in crude_history if p["timestamp"] >= window_cutoff_ms]
         poly_history = [p for p in poly_history if p["timestamp"] >= window_cutoff_ms]
-        crude_history = _decimate_history(crude_history, 600)
-        poly_history = _decimate_history(poly_history, 400)
 
         with self.lock:
             databento_status = self.databento_status.as_dict()
