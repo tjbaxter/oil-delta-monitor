@@ -584,19 +584,38 @@ export default function DashboardClient({
   const marketCardContext = liveMode ? buildLiveMarketContext(payload) : null;
   const marketInstrument = payload?.market.marketTicker ?? payload?.market.slug ?? slug;
   const crudeFeedState = liveMode ? payload?.sourceStatus?.databento.state ?? null : null;
+  const prevCrudeFeedStateRef = useRef<string | null>(null);
+  const reconnectGraceEndRef = useRef<number>(0);
+
+  useEffect(() => {
+    const prev = prevCrudeFeedStateRef.current;
+    if (prev === "connected" && crudeFeedState && crudeFeedState !== "connected") {
+      reconnectGraceEndRef.current = Date.now() + 90_000;
+    }
+    prevCrudeFeedStateRef.current = crudeFeedState;
+  }, [crudeFeedState]);
+
   const crudeFeedPauseMessage = useMemo(() => {
     if (!liveMode || !payload || crudeFeedState === "connected") {
       return null;
     }
 
+    const sessionStartedAt = payload.sourceStatus?.sessionStartedAt;
+    const sessionAgeMs = sessionStartedAt
+      ? Date.now() - Date.parse(sessionStartedAt)
+      : Number.POSITIVE_INFINITY;
+    const inSessionGrace = sessionAgeMs < 120_000;
+    const inReconnectGrace = Date.now() < reconnectGraceEndRef.current;
+    const inGrace = inSessionGrace || inReconnectGrace;
+
     if (crudeFeedState === "stale") {
-      return "Crude feed stale - fair value paused";
+      return inGrace ? null : "Crude feed stale - fair value paused";
     }
     if (crudeFeedState === "reconnecting") {
-      return "Crude feed reconnecting - fair value paused";
+      return inGrace ? null : "Crude feed reconnecting - fair value paused";
     }
     if (crudeFeedState === "warming") {
-      return "Crude feed warming - fair value paused";
+      return inGrace ? null : "Crude feed warming - fair value paused";
     }
     if (crudeFeedState === "disconnected") {
       return "Crude feed disconnected - fair value paused";

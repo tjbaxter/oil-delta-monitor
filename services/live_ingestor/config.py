@@ -212,7 +212,7 @@ def load_config() -> IngestorConfig:
             _env_int("LIVE_POLY_STALE_AFTER_MS", 15_000),
         ),
         crude_stale_after_ms=_env_int("LIVE_CRUDE_STALE_AFTER_MS", 8_000),
-        presentation_window_ms=_env_int("LIVE_PRESENTATION_WINDOW_MS", 4 * 60 * 60 * 1000),
+        presentation_window_ms=_env_int("LIVE_PRESENTATION_WINDOW_MS", 25 * 60 * 1000),
         request_timeout_seconds=_env_float("LIVE_REQUEST_TIMEOUT_SECONDS", 15.0),
         pricing_defaults={
             "strike": _env_float("LIVE_STRIKE", 100.0),
