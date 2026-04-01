@@ -816,7 +816,10 @@ export default function DashboardClient({
         : currentObservation,
     [currentObservation, fairAnalyticsPaused]
   );
-  const gapObservation = liveMode ? latestChartGapObservation : analyticsObservation;
+  // Always prefer the freshly-computed analyticsObservation for the gap card so
+  // both Presentation and Research views show the same number. Fall back to the
+  // chart-history observation only when there is no live observation at all.
+  const gapObservation = analyticsObservation ?? latestChartGapObservation;
   const scatterStats = useMemo(
     () => computeScatterStats(displayChartObservations),
     [displayChartObservations]
