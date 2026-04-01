@@ -4,7 +4,7 @@ Real-time dislocation monitor: Kalshi WTI daily binaries vs Black-Scholes call s
 
 **Live:** [cldelta.com](https://cldelta.com)
 
-![Dashboard screenshot](docs/dashboard.png)
+
 <img width="1460" height="812" alt="image" src="https://github.com/user-attachments/assets/494f9afd-b4e6-436b-b3df-968ce4fa9a21" />
 
 ---
