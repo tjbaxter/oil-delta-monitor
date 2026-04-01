@@ -587,24 +587,18 @@ export default function DashboardClient({
   const prevCrudeFeedStateRef = useRef<string | null>(null);
   const reconnectGraceEndRef = useRef<number>(0);
 
-  // On first mount: if the feed was alive within the last 60s but is currently
-  // reconnecting, set a grace period so the banner doesn't flash immediately.
-  const initialDatabentoLastEventTs = payload?.sourceStatus?.databento.lastEventTs ?? null;
+  // useState so expiry triggers a re-render (a ref would not).
+  // True for the first 15s after hydration — prevents the "stale" banner from
+  // flashing on load when the SSR snapshot is a few seconds old.
+  const [startupGraceActive, setStartupGraceActive] = useState(true);
   useEffect(() => {
-    if (
-      crudeFeedState &&
-      crudeFeedState !== "connected" &&
-      initialDatabentoLastEventTs !== null
-    ) {
-      const ageMs = Date.now() - initialDatabentoLastEventTs;
-      if (ageMs >= 0 && ageMs < 60_000) {
-        reconnectGraceEndRef.current = Date.now() + 90_000;
-      }
-    }
-    prevCrudeFeedStateRef.current = crudeFeedState;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const t = setTimeout(() => setStartupGraceActive(false), 15_000);
+    return () => clearTimeout(t);
   }, []);
 
+  // When the feed transitions connected → non-connected, arm a 90s grace period.
+  // The ref update fires before the memo re-runs (same React batch), so the
+  // banner stays hidden during brief reconnects that resolve within 90s.
   useEffect(() => {
     const prev = prevCrudeFeedStateRef.current;
     if (prev === "connected" && crudeFeedState && crudeFeedState !== "connected") {
@@ -624,7 +618,7 @@ export default function DashboardClient({
       : Number.POSITIVE_INFINITY;
     const inSessionGrace = sessionAgeMs < 120_000;
     const inReconnectGrace = Date.now() < reconnectGraceEndRef.current;
-    const inGrace = inSessionGrace || inReconnectGrace;
+    const inGrace = startupGraceActive || inSessionGrace || inReconnectGrace;
 
     if (crudeFeedState === "stale") {
       return inGrace ? null : "Crude feed stale - fair value paused";
@@ -639,7 +633,7 @@ export default function DashboardClient({
       return "Crude feed disconnected - fair value paused";
     }
     return null;
-  }, [crudeFeedState, liveMode, payload]);
+  }, [crudeFeedState, liveMode, payload, startupGraceActive]);
   const fairAnalyticsPaused = Boolean(crudeFeedPauseMessage);
   const chartExplainers = useMemo(() => {
     const spreadLow = (strike - spreadWidth / 2).toFixed(1);
