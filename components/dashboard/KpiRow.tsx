@@ -214,7 +214,7 @@ export default function KpiRow({
         }
         accentClass={fairPaused ? "accent-neutral" : gapTone.accentClass}
         className="kpi-card-hero"
-        valueClassName={fairPaused ? "kpi-value-neutral" : gapTone.toneClass}
+        valueClassName={fairPaused ? "kpi-value-neutral" : "kpi-value-positive"}
         subtextClassName={fairPaused ? undefined : gapTone.toneClass}
       />
     </section>
