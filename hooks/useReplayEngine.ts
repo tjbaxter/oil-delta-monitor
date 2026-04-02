@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { Observation, ReplayPayload } from "@/lib/types";
 
@@ -37,8 +37,9 @@ export function useReplayEngine(
   const totalCount = allObservations.length;
 
   // Auto-start after data loads.
-  // If the payload specifies an animationStartIndex, use that; otherwise default to 70%.
-  useEffect(() => {
+  // useLayoutEffect fires before paint so currentIndex jumps to the animation start
+  // index in the same frame — no flash of a near-empty chart before pre-fill.
+  useLayoutEffect(() => {
     if (sessionData && totalCount > 0) {
       const startIdx =
         sessionData.animationStartIndex !== null && sessionData.animationStartIndex !== undefined
