@@ -726,7 +726,7 @@ export default function DashboardClient({
           $1 in CL. The call spread slope is your <B>model delta</B>. The {venue} slope is the{" "}
           <B>implied delta</B>. If {venue}&apos;s slope is steeper, the market is overreacting to
           price moves &mdash; you&apos;d sell {venue} and hedge with futures. The{" "}
-          <B>ratio of slopes is your edge signal</B>.
+          <B>ratio of slopes suggests an edge</B>.
         </>
       )
     };

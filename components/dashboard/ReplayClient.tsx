@@ -277,7 +277,7 @@ export default function ReplayClient({ appMode, onToggleAppMode }: ReplayClientP
                 — how much probability moves per $1 in CL. The call spread slope is your{" "}
                 <strong className="explain-keyword">model delta</strong>. The Kalshi slope is the{" "}
                 <strong className="explain-keyword">implied delta</strong>. The{" "}
-                <strong className="explain-keyword">ratio of slopes is your edge signal</strong>.
+                <strong className="explain-keyword">ratio of slopes suggests an edge</strong>.
                 {scatterStats.ratio !== null ? (
                   <>
                     {" "}
