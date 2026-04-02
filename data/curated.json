@@ -4,7 +4,7 @@
     "label": "Apr 1 — Best dislocation window",
     "description": "00:51–01:27 UTC Apr 2: chart pre-loaded with 10 min of history, animation starts at 01:01:59 UTC.",
     "default": true,
-    "startTs": "2026-04-02T00:51:34Z",
+    "startTs": "2026-04-02T00:00:00Z",
     "endTs": "2026-04-02T01:27:19Z",
     "animationStartTs": "2026-04-02T01:01:59Z"
   },
