@@ -24,6 +24,7 @@ interface CuratedEntry {
   id: string;
   startTs?: string | null;
   endTs?: string | null;
+  animationStartTs?: string | null;
 }
 
 interface RawObservation {
