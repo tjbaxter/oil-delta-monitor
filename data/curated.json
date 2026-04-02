@@ -2,9 +2,17 @@
   {
     "id": "20260401_174953",
     "label": "Apr 1 — Near-the-money, active signals",
-    "description": "April 1 session with CL at $99.60 near the $100 strike. 26 midpoint crossings in 30 minutes — frequent rich/cheap switches as Kalshi diverged from Black-Scholes fair value.",
+    "description": "Best 30-min window: CL at $99.60 near the $100 strike, 26 crossings between rich and cheap.",
     "default": true,
     "startTs": "2026-04-01T18:01:00Z",
     "endTs": "2026-04-01T18:32:00Z"
+  },
+  {
+    "id": "20260401_174953",
+    "label": "Apr 1 — Full session (8h lifecycle)",
+    "description": "Complete April 1 session. CL moved from $103 to $99. Scrub to see the full daily arc.",
+    "default": false,
+    "startTs": null,
+    "endTs": null
   }
 ]

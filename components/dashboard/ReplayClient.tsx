@@ -46,9 +46,17 @@ async function fetchSessions(): Promise<SessionListItem[]> {
   return res.json() as Promise<SessionListItem[]>;
 }
 
-async function fetchSession(id: string): Promise<ReplayPayload | null> {
+async function fetchSession(
+  id: string,
+  startTs: string | null,
+  endTs: string | null
+): Promise<ReplayPayload | null> {
   try {
-    const res = await fetch(`/api/sessions/${id}`, { cache: "no-store" });
+    const params = new URLSearchParams();
+    // Pass empty string to explicitly opt out of any curated clip
+    params.set("startTs", startTs ?? "");
+    params.set("endTs", endTs ?? "");
+    const res = await fetch(`/api/sessions/${id}?${params}`, { cache: "no-store" });
     if (!res.ok) return null;
     const data = (await res.json()) as unknown;
     if (
@@ -70,7 +78,7 @@ function formatStrikeLabel(value: number): string {
 
 export default function ReplayClient({ appMode, onToggleAppMode }: ReplayClientProps) {
   const [sessions, setSessions] = useState<SessionListItem[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<SessionListItem | null>(null);
   const [sessionData, setSessionData] = useState<ReplayPayload | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -83,17 +91,17 @@ export default function ReplayClient({ appMode, onToggleAppMode }: ReplayClientP
     fetchSessions().then((list) => {
       setSessions(list);
       const def = list.find((s) => s.default) ?? list[0] ?? null;
-      if (def) setSelectedId(def.id);
+      if (def) setSelectedItem(def);
     }).catch(() => setSessions([]));
   }, []);
 
-  // Load session data when selectedId changes
+  // Load session data when selected item changes
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedItem) return;
     setIsLoadingSession(true);
     setLoadError(null);
     setSessionData(null);
-    fetchSession(selectedId).then((data) => {
+    fetchSession(selectedItem.id, selectedItem.startTs, selectedItem.endTs).then((data) => {
       if (!data) {
         setLoadError("Failed to load session data.");
       } else {
@@ -104,19 +112,17 @@ export default function ReplayClient({ appMode, onToggleAppMode }: ReplayClientP
     }).finally(() => {
       setIsLoadingSession(false);
     });
-  }, [selectedId]);
+  }, [selectedItem]);
 
-  const handleSessionChange = useCallback((id: string) => {
-    setSelectedId(id);
-  }, []);
+  const handleSessionChange = useCallback((idx: string) => {
+    const item = sessions[Number(idx)] ?? null;
+    if (item) setSelectedItem(item);
+  }, [sessions]);
 
   const latestObservation = visibleObservations[visibleObservations.length - 1] ?? null;
   const scatterStats = useMemo(() => computeScatterStats(visibleObservations), [visibleObservations]);
 
-  const sessionLabel = useMemo(() => {
-    if (!selectedId) return "—";
-    return sessions.find((s) => s.id === selectedId)?.label ?? selectedId;
-  }, [sessions, selectedId]);
+  const sessionLabel = selectedItem?.label ?? "—";
 
   const pricing = sessionData?.pricingDefaults;
   const strike = pricing?.strike ?? 100;
@@ -161,10 +167,10 @@ export default function ReplayClient({ appMode, onToggleAppMode }: ReplayClientP
             <select
               className="session-selector"
               onChange={(e) => handleSessionChange(e.target.value)}
-              value={selectedId ?? ""}
+              value={sessions.indexOf(selectedItem ?? sessions[0])}
             >
-              {sessions.map((s) => (
-                <option key={s.id} value={s.id}>
+              {sessions.map((s, i) => (
+                <option key={`${s.id}-${i}`} value={i}>
                   {s.label}
                 </option>
               ))}
@@ -227,7 +233,7 @@ export default function ReplayClient({ appMode, onToggleAppMode }: ReplayClientP
               marketLegendLabel="Kalshi"
               observations={visibleObservations}
               pausedMessage={null}
-              resetKey={selectedId ?? "replay"}
+              resetKey={selectedItem ? `${selectedItem.id}-${selectedItem.startTs ?? "full"}` : "replay"}
             />
             <ScatterDeltaChart
               marketLegendLabel="Kalshi"

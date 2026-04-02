@@ -109,9 +109,15 @@ export async function GET(
     readJsonFile<CuratedEntry[]>(CURATED_PATH)
   ]);
 
+  // Query params take precedence; pass empty string to explicitly request no clip
+  const qStart = req.nextUrl.searchParams.get("startTs");
+  const qEnd = req.nextUrl.searchParams.get("endTs");
   const curatedEntry = curated?.find((c) => c.id === id) ?? null;
-  const clipStartMs = curatedEntry?.startTs ? Date.parse(curatedEntry.startTs) : null;
-  const clipEndMs = curatedEntry?.endTs ? Date.parse(curatedEntry.endTs) : null;
+
+  const rawStartTs = qStart !== null ? qStart : (curatedEntry?.startTs ?? null);
+  const rawEndTs = qEnd !== null ? qEnd : (curatedEntry?.endTs ?? null);
+  const clipStartMs = rawStartTs ? Date.parse(rawStartTs) : null;
+  const clipEndMs = rawEndTs ? Date.parse(rawEndTs) : null;
 
   if (!metadata || !rawContent) {
     return NextResponse.json(

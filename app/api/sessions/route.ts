@@ -37,49 +37,62 @@ export async function GET() {
     ]);
 
     const curated = curatedRaw ?? [];
-    const curatedMap = new Map(curated.map((c) => [c.id, c]));
-    const curatedIds = new Set(curated.map((c) => c.id));
-
-    const sessions = await Promise.all(
-      sessionDirs
-        .filter((id) => /^\d{8}_\d{6}$/.test(id))
-        .map(async (id): Promise<SessionListItem | null> => {
-          try {
-            const sessionDir = path.join(SESSIONS_DIR, id);
-            const [metadata, obsCount] = await Promise.all([
-              readJsonFile<Record<string, unknown>>(path.join(sessionDir, "metadata.json")),
-              countLines(path.join(sessionDir, "observations.jsonl"))
-            ]);
-
-            const curatedEntry = curatedMap.get(id);
-
-            return {
-              id,
-              label: curatedEntry?.label ?? `Session ${id.replace("_", " ")}`,
-              curated: curatedIds.has(id),
-              default: curatedEntry?.default ?? false,
-              sessionStartedAt:
-                typeof metadata?.sessionStartedAt === "string"
-                  ? metadata.sessionStartedAt
-                  : null,
-              crudeRange: null,
-              observationCount: obsCount
-            };
-          } catch {
-            return null;
-          }
-        })
+    const validDirs = new Set(
+      sessionDirs.filter((id) => /^\d{8}_\d{6}$/.test(id))
     );
 
-    const validSessions = sessions
-      .filter((s): s is SessionListItem => s !== null && s.observationCount >= 300)
-      .sort((a, b) => {
-        if (a.default && !b.default) return -1;
-        if (!a.default && b.default) return 1;
-        return b.id.localeCompare(a.id);
-      });
+    // Fetch metadata + obs count once per unique session dir
+    const dirMeta = new Map<string, { sessionStartedAt: string | null; obsCount: number }>();
+    await Promise.all(
+      Array.from(validDirs).map(async (id) => {
+        const sessionDir = path.join(SESSIONS_DIR, id);
+        const [metadata, obsCount] = await Promise.all([
+          readJsonFile<Record<string, unknown>>(path.join(sessionDir, "metadata.json")),
+          countLines(path.join(sessionDir, "observations.jsonl"))
+        ]);
+        dirMeta.set(id, {
+          sessionStartedAt: typeof metadata?.sessionStartedAt === "string"
+            ? metadata.sessionStartedAt
+            : null,
+          obsCount
+        });
+      })
+    );
 
-    return NextResponse.json(validSessions);
+    // Curated entries come first — one dropdown item per curated entry (allows same
+    // session ID with different clip windows to appear as separate dropdown options)
+    const curatedIds = new Set(curated.map((c) => c.id));
+    const curatedItems: SessionListItem[] = curated
+      .filter((c) => validDirs.has(c.id) && (dirMeta.get(c.id)?.obsCount ?? 0) >= 300)
+      .map((c): SessionListItem => ({
+        id: c.id,
+        label: c.label,
+        curated: true,
+        default: c.default ?? false,
+        sessionStartedAt: dirMeta.get(c.id)?.sessionStartedAt ?? null,
+        crudeRange: null,
+        observationCount: dirMeta.get(c.id)?.obsCount ?? 0,
+        startTs: c.startTs ?? null,
+        endTs: c.endTs ?? null
+      }));
+
+    // Non-curated sessions (not mentioned in curated.json at all) appended after
+    const uncuratedItems: SessionListItem[] = Array.from(validDirs)
+      .filter((id) => !curatedIds.has(id) && (dirMeta.get(id)?.obsCount ?? 0) >= 300)
+      .sort((a, b) => b.localeCompare(a))
+      .map((id): SessionListItem => ({
+        id,
+        label: `Session ${id.slice(0, 8)} ${id.slice(9)}`,
+        curated: false,
+        default: false,
+        sessionStartedAt: dirMeta.get(id)?.sessionStartedAt ?? null,
+        crudeRange: null,
+        observationCount: dirMeta.get(id)?.obsCount ?? 0,
+        startTs: null,
+        endTs: null
+      }));
+
+    return NextResponse.json([...curatedItems, ...uncuratedItems]);
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: String(error) },

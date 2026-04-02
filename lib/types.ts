@@ -201,8 +201,8 @@ export interface CuratedSession {
   label: string;
   description?: string | null;
   default: boolean;
-  startTs?: number | null;
-  endTs?: number | null;
+  startTs?: string | null;
+  endTs?: string | null;
 }
 
 export interface SessionListItem {
@@ -213,6 +213,8 @@ export interface SessionListItem {
   sessionStartedAt: string | null;
   crudeRange: [number, number] | null;
   observationCount: number;
+  startTs: string | null;
+  endTs: string | null;
 }
 
 export interface ReplayPricingDefaults {
