@@ -13,6 +13,16 @@ export default function RootLayout({
 }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Preload the default replay JSON so the browser fetches it in parallel
+            with the JS bundle — by the time React hydrates, it's already cached. */}
+        <link
+          rel="preload"
+          href="/replay/default-session.json"
+          as="fetch"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

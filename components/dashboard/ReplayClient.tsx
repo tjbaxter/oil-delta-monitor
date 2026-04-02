@@ -17,20 +17,12 @@ import type { ReplayPayload, SessionListItem } from "@/lib/types";
 
 const HeartbeatChart = dynamic(() => import("@/components/dashboard/HeartbeatChart"), {
   ssr: false,
-  loading: () => (
-    <div className="chart-panel chart-panel-skeleton">
-      <div className="chart-loading">Loading chart...</div>
-    </div>
-  )
+  loading: () => <div className="chart-panel" style={{ minHeight: 340 }} />
 });
 
 const ScatterDeltaChart = dynamic(() => import("@/components/dashboard/ScatterDeltaChart"), {
   ssr: false,
-  loading: () => (
-    <div className="chart-panel chart-panel-skeleton">
-      <div className="chart-loading">Loading chart...</div>
-    </div>
-  )
+  loading: () => <div className="chart-panel" style={{ minHeight: 340 }} />
 });
 
 const KpiRow = dynamic(() => import("@/components/dashboard/KpiRow"), { ssr: false });
@@ -46,6 +38,22 @@ async function fetchSessions(): Promise<SessionListItem[]> {
   return res.json() as Promise<SessionListItem[]>;
 }
 
+async function fetchDefaultSession(): Promise<ReplayPayload | null> {
+  try {
+    // Fetch the precomputed static file — served directly by the web server,
+    // no API computation, browser likely already has it cached from the preload hint.
+    const res = await fetch("/replay/default-session.json");
+    if (!res.ok) return null;
+    const data = (await res.json()) as unknown;
+    if (data && typeof data === "object" && (data as ReplayPayload).ok === true) {
+      return data as ReplayPayload;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchSession(
   id: string,
   startTs: string | null,
@@ -58,7 +66,7 @@ async function fetchSession(
     params.set("startTs", startTs ?? "");
     params.set("endTs", endTs ?? "");
     params.set("animationStartTs", animationStartTs ?? "");
-    const res = await fetch(`/api/sessions/${id}?${params}`, { cache: "no-store" });
+    const res = await fetch(`/api/sessions/${id}?${params}`);
     if (!res.ok) return null;
     const data = (await res.json()) as unknown;
     if (
@@ -97,13 +105,20 @@ export default function ReplayClient({ appMode, onToggleAppMode }: ReplayClientP
     }).catch(() => setSessions([]));
   }, []);
 
-  // Load session data when selected item changes
+  // Load session data when selected item changes.
+  // For the default curated session use the precomputed static file so the
+  // browser can serve it from cache with no API round-trip.
   useEffect(() => {
     if (!selectedItem) return;
     setIsLoadingSession(true);
     setLoadError(null);
     setSessionData(null);
-    fetchSession(selectedItem.id, selectedItem.startTs, selectedItem.endTs, selectedItem.animationStartTs).then((data) => {
+
+    const loader = selectedItem.default
+      ? fetchDefaultSession()
+      : fetchSession(selectedItem.id, selectedItem.startTs, selectedItem.endTs, selectedItem.animationStartTs);
+
+    loader.then((data) => {
       if (!data) {
         setLoadError("Failed to load session data.");
       } else {

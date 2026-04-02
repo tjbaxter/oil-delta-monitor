@@ -303,5 +303,8 @@ export async function GET(
     animationStartIndex
   };
 
-  return NextResponse.json(payload);
+  const response = NextResponse.json(payload);
+  // Session data is historical and never changes — cache aggressively.
+  response.headers.set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
+  return response;
 }
