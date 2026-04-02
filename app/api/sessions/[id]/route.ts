@@ -18,6 +18,13 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 const SESSIONS_DIR = path.join(process.cwd(), "data", "sessions");
+const CURATED_PATH = path.join(process.cwd(), "data", "curated.json");
+
+interface CuratedEntry {
+  id: string;
+  startTs?: string | null;
+  endTs?: string | null;
+}
 
 interface RawObservation {
   recordedAt: number;
@@ -95,11 +102,16 @@ export async function GET(
 
   const sessionDir = path.join(SESSIONS_DIR, id);
 
-  const [metadata, snapshot, rawContent] = await Promise.all([
+  const [metadata, snapshot, rawContent, curated] = await Promise.all([
     readJsonFile<SessionMetadata>(path.join(sessionDir, "metadata.json")),
     readJsonFile<SessionSnapshot>(path.join(sessionDir, "snapshot.json")),
-    readFile(path.join(sessionDir, "observations.jsonl"), "utf8").catch(() => null)
+    readFile(path.join(sessionDir, "observations.jsonl"), "utf8").catch(() => null),
+    readJsonFile<CuratedEntry[]>(CURATED_PATH)
   ]);
+
+  const curatedEntry = curated?.find((c) => c.id === id) ?? null;
+  const clipStartMs = curatedEntry?.startTs ? Date.parse(curatedEntry.startTs) : null;
+  const clipEndMs = curatedEntry?.endTs ? Date.parse(curatedEntry.endTs) : null;
 
   if (!metadata || !rawContent) {
     return NextResponse.json(
@@ -131,9 +143,15 @@ export async function GET(
     );
   }
 
+  // Apply curated time window clip if set
+  const clippedObs =
+    clipStartMs !== null && clipEndMs !== null
+      ? rawObs.filter((o) => o.recordedAt >= clipStartMs && o.recordedAt <= clipEndMs)
+      : rawObs;
+
   // Bucket to 5-second windows to keep response size manageable
-  const bucketed = bucketObservations(rawObs, 5_000);
-  const totalObservations = rawObs.length;
+  const bucketed = bucketObservations(clippedObs, 5_000);
+  const totalObservations = clippedObs.length;
 
   // Build Observation objects with fairProb + theoreticalDelta computed per record
   const partialObs: Observation[] = bucketed
