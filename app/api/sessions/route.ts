@@ -73,7 +73,8 @@ export async function GET() {
         crudeRange: null,
         observationCount: dirMeta.get(c.id)?.obsCount ?? 0,
         startTs: c.startTs ?? null,
-        endTs: c.endTs ?? null
+        endTs: c.endTs ?? null,
+        animationStartTs: c.animationStartTs ?? null
       }));
 
     // Non-curated sessions (not mentioned in curated.json at all) appended after
@@ -89,7 +90,8 @@ export async function GET() {
         crudeRange: null,
         observationCount: dirMeta.get(id)?.obsCount ?? 0,
         startTs: null,
-        endTs: null
+        endTs: null,
+        animationStartTs: null
       }));
 
     return NextResponse.json([...curatedItems, ...uncuratedItems]);

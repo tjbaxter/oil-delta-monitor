@@ -203,6 +203,7 @@ export interface CuratedSession {
   default: boolean;
   startTs?: string | null;
   endTs?: string | null;
+  animationStartTs?: string | null;
 }
 
 export interface SessionListItem {
@@ -215,6 +216,7 @@ export interface SessionListItem {
   observationCount: number;
   startTs: string | null;
   endTs: string | null;
+  animationStartTs: string | null;
 }
 
 export interface ReplayPricingDefaults {
@@ -239,4 +241,5 @@ export interface ReplayPayload {
   crudeLabel: string;
   crudeSubLabel: string;
   totalObservations: number;
+  animationStartIndex: number | null;
 }

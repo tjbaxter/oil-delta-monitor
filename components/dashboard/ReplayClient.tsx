@@ -49,13 +49,15 @@ async function fetchSessions(): Promise<SessionListItem[]> {
 async function fetchSession(
   id: string,
   startTs: string | null,
-  endTs: string | null
+  endTs: string | null,
+  animationStartTs: string | null
 ): Promise<ReplayPayload | null> {
   try {
     const params = new URLSearchParams();
     // Pass empty string to explicitly opt out of any curated clip
     params.set("startTs", startTs ?? "");
     params.set("endTs", endTs ?? "");
+    params.set("animationStartTs", animationStartTs ?? "");
     const res = await fetch(`/api/sessions/${id}?${params}`, { cache: "no-store" });
     if (!res.ok) return null;
     const data = (await res.json()) as unknown;
@@ -101,7 +103,7 @@ export default function ReplayClient({ appMode, onToggleAppMode }: ReplayClientP
     setIsLoadingSession(true);
     setLoadError(null);
     setSessionData(null);
-    fetchSession(selectedItem.id, selectedItem.startTs, selectedItem.endTs).then((data) => {
+    fetchSession(selectedItem.id, selectedItem.startTs, selectedItem.endTs, selectedItem.animationStartTs).then((data) => {
       if (!data) {
         setLoadError("Failed to load session data.");
       } else {

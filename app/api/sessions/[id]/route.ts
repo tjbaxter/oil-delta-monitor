@@ -112,12 +112,15 @@ export async function GET(
   // Query params take precedence; pass empty string to explicitly request no clip
   const qStart = req.nextUrl.searchParams.get("startTs");
   const qEnd = req.nextUrl.searchParams.get("endTs");
+  const qAnimStart = req.nextUrl.searchParams.get("animationStartTs");
   const curatedEntry = curated?.find((c) => c.id === id) ?? null;
 
   const rawStartTs = qStart !== null ? qStart : (curatedEntry?.startTs ?? null);
   const rawEndTs = qEnd !== null ? qEnd : (curatedEntry?.endTs ?? null);
+  const rawAnimStartTs = qAnimStart !== null ? qAnimStart : (curatedEntry?.animationStartTs ?? null);
   const clipStartMs = rawStartTs ? Date.parse(rawStartTs) : null;
   const clipEndMs = rawEndTs ? Date.parse(rawEndTs) : null;
+  const animStartMs = rawAnimStartTs ? Date.parse(rawAnimStartTs) : null;
 
   if (!metadata || !rawContent) {
     return NextResponse.json(
@@ -243,6 +246,12 @@ export async function GET(
   const windowStartTs = enrichedObs[0]?.timestamp ?? 0;
   const windowEndTs = enrichedObs[enrichedObs.length - 1]?.timestamp ?? 0;
 
+  // Find the index of the first observation at or after animationStartTs
+  const animationStartIndex: number | null =
+    animStartMs !== null
+      ? Math.max(0, enrichedObs.findIndex((o) => o.timestamp >= animStartMs))
+      : null;
+
   const market: MarketMeta = snapshot?.market ?? {
     title: `Session ${id}`,
     question: `Session ${id}`,
@@ -289,7 +298,8 @@ export async function GET(
     windowEndTs,
     crudeLabel: snapshot?.crudeLabel ?? "CME CL.c.0 (Databento Live)",
     crudeSubLabel: `Historical recording — ${formattedDate}`,
-    totalObservations
+    totalObservations,
+    animationStartIndex
   };
 
   return NextResponse.json(payload);

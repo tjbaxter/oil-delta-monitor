@@ -36,10 +36,15 @@ export function useReplayEngine(
   const allObservations = sessionData?.observations ?? [];
   const totalCount = allObservations.length;
 
-  // Auto-start after data loads — jump to 70% so the chart looks developed on arrival
+  // Auto-start after data loads.
+  // If the payload specifies an animationStartIndex, use that; otherwise default to 70%.
   useEffect(() => {
     if (sessionData && totalCount > 0) {
-      setCurrentIndex(Math.floor(totalCount * 0.7));
+      const startIdx =
+        sessionData.animationStartIndex !== null && sessionData.animationStartIndex !== undefined
+          ? Math.min(sessionData.animationStartIndex, totalCount - 1)
+          : Math.floor(totalCount * 0.7);
+      setCurrentIndex(startIdx);
       setIsPlaying(true);
     }
   }, [sessionData, totalCount]);

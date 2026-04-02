@@ -1,11 +1,21 @@
 [
   {
     "id": "20260401_174953",
+    "label": "Apr 2 — Best dislocation window (v2)",
+    "description": "02:01–02:27 UTC: chart pre-loaded with 22 min of history, animation starts at 02:01:44 UTC.",
+    "default": true,
+    "startTs": "2026-04-02T01:39:25Z",
+    "endTs": "2026-04-02T02:27:20Z",
+    "animationStartTs": "2026-04-02T02:01:44Z"
+  },
+  {
+    "id": "20260401_174953",
     "label": "Apr 1 — Near-the-money, active signals",
     "description": "Best 30-min window: CL at $99.60 near the $100 strike, 26 crossings between rich and cheap.",
-    "default": true,
+    "default": false,
     "startTs": "2026-04-01T18:01:00Z",
-    "endTs": "2026-04-01T18:32:00Z"
+    "endTs": "2026-04-01T18:32:00Z",
+    "animationStartTs": null
   },
   {
     "id": "20260401_174953",
@@ -13,6 +23,7 @@
     "description": "Complete April 1 session. CL moved from $103 to $99. Scrub to see the full daily arc.",
     "default": false,
     "startTs": null,
-    "endTs": null
+    "endTs": null,
+    "animationStartTs": null
   }
 ]
