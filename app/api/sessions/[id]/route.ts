@@ -202,6 +202,20 @@ export async function GET(
     deltaGapThreshold: pricing.deltaGapThreshold
   });
 
+  // classifySignal requires both fairValueGap and deltaGap to be non-null.
+  // For replay data, deltaGap is null until the rolling window warms up, so
+  // we fall back to fairValueGap-only classification for those observations.
+  const fairThreshold = pricing.fairGapThreshold;
+  for (const obs of enrichedObs) {
+    if (obs.signal === "Neutral" && obs.deltaGap === null && obs.fairValueGap !== null) {
+      if (obs.fairValueGap > fairThreshold) {
+        obs.signal = "Market rich";
+      } else if (obs.fairValueGap < -fairThreshold) {
+        obs.signal = "Market cheap";
+      }
+    }
+  }
+
   const windowStartTs = enrichedObs[0]?.timestamp ?? 0;
   const windowEndTs = enrichedObs[enrichedObs.length - 1]?.timestamp ?? 0;
 
