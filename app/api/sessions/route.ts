@@ -72,7 +72,7 @@ export async function GET() {
     );
 
     const validSessions = sessions
-      .filter((s): s is SessionListItem => s !== null)
+      .filter((s): s is SessionListItem => s !== null && s.observationCount >= 300)
       .sort((a, b) => {
         if (a.default && !b.default) return -1;
         if (!a.default && b.default) return 1;

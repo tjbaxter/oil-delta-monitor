@@ -52,6 +52,7 @@ export const THEO_COLOR = "#ff8b3d";
 export const CRUDE_COLOR = "#b9a26a";
 export const POSITIVE_COLOR = "#2ec27e";
 export const NEGATIVE_COLOR = "#f66151";
+export const SIGNAL_RICH_COLOR = "#f59e0b";
 export const NEUTRAL_COLOR = "#8a9199";
 export const BG_COLOR = "#040710";
 export const PANEL_BG = "#091220";

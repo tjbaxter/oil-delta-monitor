@@ -380,6 +380,10 @@ main {
   background: var(--negative);
 }
 
+.accent-amber::before {
+  background: #f59e0b;
+}
+
 .accent-neutral::before {
   background: var(--neutral);
 }
@@ -431,6 +435,13 @@ main {
     0 16px 32px rgba(246, 97, 81, 0.1);
 }
 
+.kpi-card-hero.accent-amber {
+  border-color: rgba(245, 158, 11, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.02),
+    0 16px 32px rgba(245, 158, 11, 0.1);
+}
+
 .kpi-card-hero.accent-neutral {
   border-color: rgba(138, 145, 153, 0.32);
 }
@@ -441,6 +452,10 @@ main {
 
 .kpi-value-negative {
   color: var(--negative);
+}
+
+.kpi-value-amber {
+  color: #f59e0b;
 }
 
 .kpi-value-neutral {

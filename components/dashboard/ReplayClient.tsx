@@ -10,8 +10,8 @@ import { useReplayEngine } from "@/hooks/useReplayEngine";
 import { computeScatterStats } from "@/lib/analytics";
 import {
   DASHBOARD_TITLE,
-  NEGATIVE_COLOR,
-  POSITIVE_COLOR
+  POSITIVE_COLOR,
+  SIGNAL_RICH_COLOR
 } from "@/lib/constants";
 import type { ReplayPayload, SessionListItem } from "@/lib/types";
 
@@ -129,7 +129,7 @@ export default function ReplayClient({ appMode, onToggleAppMode }: ReplayClientP
   const signalState = latestObservation?.signal ?? "Neutral";
   const signalColor =
     signalState === "Market rich"
-      ? NEGATIVE_COLOR
+      ? SIGNAL_RICH_COLOR
       : POSITIVE_COLOR;
 
   const hasData = visibleObservations.length > 0;

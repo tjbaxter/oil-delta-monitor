@@ -1,26 +1,10 @@
 [
   {
-    "id": "20260331_135837",
-    "label": "Mar 31 — WTI selloff, sustained dislocation",
-    "description": "March 31 saw a significant WTI move from ~105 down to ~99.6. Kalshi's market price persistently diverged from Black-Scholes fair value throughout the move, with the gap reaching 40+ cents at peak.",
+    "id": "20260401_174953",
+    "label": "Apr 1 — Near-the-money, active signals",
+    "description": "April 1 session with CL at $99.60 near the $100 strike. 26 midpoint crossings in 30 minutes — frequent rich/cheap switches as Kalshi diverged from Black-Scholes fair value.",
     "default": true,
-    "startTs": null,
-    "endTs": null
-  },
-  {
-    "id": "20260331_081954",
-    "label": "Mar 31 AM — Early session, high dislocation",
-    "description": "Early March 31 session. CL near 102–103 with Kalshi consistently rich relative to fair value.",
-    "default": false,
-    "startTs": null,
-    "endTs": null
-  },
-  {
-    "id": "20260401_123022",
-    "label": "Apr 1 — Live session data",
-    "description": "April 1 trading session. CL trading near the 100 strike, creating interesting near-the-money dislocation dynamics.",
-    "default": false,
-    "startTs": null,
-    "endTs": null
+    "startTs": "2026-04-01T18:01:00Z",
+    "endTs": "2026-04-01T18:32:00Z"
   }
 ]

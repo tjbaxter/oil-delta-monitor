@@ -36,8 +36,8 @@ function gapSignalTone(fairValueGap: number | null | undefined): {
 } {
   if (typeof fairValueGap === "number" && fairValueGap > 0) {
     return {
-      accentClass: "accent-negative",
-      toneClass: "kpi-value-negative",
+      accentClass: "accent-amber",
+      toneClass: "kpi-value-amber",
       message: "Market rich - sell signal"
     };
   }
