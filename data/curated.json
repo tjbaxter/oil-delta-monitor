@@ -1,12 +1,12 @@
 [
   {
     "id": "20260401_174953",
-    "label": "Apr 2 — Best dislocation window (v2)",
-    "description": "02:01–02:27 UTC: chart pre-loaded with 22 min of history, animation starts at 02:01:44 UTC.",
+    "label": "Apr 1 — Best dislocation window",
+    "description": "00:51–01:27 UTC Apr 2: chart pre-loaded with 10 min of history, animation starts at 01:01:59 UTC.",
     "default": true,
-    "startTs": "2026-04-02T01:39:25Z",
-    "endTs": "2026-04-02T02:27:20Z",
-    "animationStartTs": "2026-04-02T02:01:44Z"
+    "startTs": "2026-04-02T00:51:34Z",
+    "endTs": "2026-04-02T01:27:19Z",
+    "animationStartTs": "2026-04-02T01:01:59Z"
   },
   {
     "id": "20260401_174953",
