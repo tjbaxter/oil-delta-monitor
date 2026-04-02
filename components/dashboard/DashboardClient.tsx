@@ -7,7 +7,9 @@ import ControlsPanel from "@/components/dashboard/ControlsPanel";
 import EmptyStatePanels from "@/components/dashboard/EmptyStatePanels";
 import HeaderStrip from "@/components/dashboard/HeaderStrip";
 import KpiRow from "@/components/dashboard/KpiRow";
+import MarketStateBanner from "@/components/dashboard/MarketStateBanner";
 import MetricsStrip from "@/components/dashboard/MetricsStrip";
+import MethodologyPanel from "@/components/dashboard/MethodologyPanel";
 import {
   classifySignal,
   computeDeltaGap,
@@ -72,6 +74,8 @@ interface DashboardClientProps {
   initialError: string | null;
   initialSlug: string;
   initialMode: SnapshotMode;
+  appMode?: "live" | "replay";
+  onToggleAppMode?: () => void;
 }
 
 function isBootstrapPayload(value: unknown): value is BootstrapPayload {
@@ -545,7 +549,9 @@ export default function DashboardClient({
   initialPayload,
   initialError,
   initialSlug,
-  initialMode
+  initialMode,
+  appMode,
+  onToggleAppMode
 }: DashboardClientProps) {
   const [payload, setPayload] = useState<BootstrapPayload | null>(initialPayload);
   const [errorMessage, setErrorMessage] = useState<string | null>(initialError);
@@ -586,6 +592,11 @@ export default function DashboardClient({
   const crudeFeedState = liveMode ? payload?.sourceStatus?.databento.state ?? null : null;
   const prevCrudeFeedStateRef = useRef<string | null>(null);
   const reconnectGraceEndRef = useRef<number>(0);
+  const hiddenAtRef = useRef<number | null>(null);
+  // When the tab is foregrounded after >60s in the background, set this to
+  // Date.now() so the scatter only shows post-gap observations. The heartbeat
+  // is unaffected — it keeps showing the full windowed session history.
+  const [scatterGapCutoff, setScatterGapCutoff] = useState<number>(0);
 
   // useState so expiry triggers a re-render (a ref would not).
   // True for the first 15s after hydration — prevents the "stale" banner from
@@ -606,6 +617,32 @@ export default function DashboardClient({
     }
     prevCrudeFeedStateRef.current = crudeFeedState;
   }, [crudeFeedState]);
+
+  // Page Visibility API — detect Chrome background tab throttling.
+  // When the tab has been hidden for >60s and comes back, old observations
+  // from before the gap are still within the 20-min time window but represent
+  // a different price regime. Reset the scatter cutoff so only post-gap data
+  // is shown. The heartbeat chart is unaffected.
+  useEffect(() => {
+    if (!liveMode) {
+      return undefined;
+    }
+
+    const handler = () => {
+      if (document.hidden) {
+        hiddenAtRef.current = Date.now();
+      } else {
+        const hiddenAt = hiddenAtRef.current;
+        hiddenAtRef.current = null;
+        if (hiddenAt !== null && Date.now() - hiddenAt > 60_000) {
+          setScatterGapCutoff(Date.now());
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, [liveMode]);
 
   const crudeFeedPauseMessage = useMemo(() => {
     if (!liveMode || !payload || crudeFeedState === "connected") {
@@ -767,6 +804,17 @@ export default function DashboardClient({
         : chartObservations,
     [chartObservations, fairAnalyticsPaused]
   );
+  // Scatter-only view: exclude observations from before the last background gap.
+  // displayChartObservations (used by the heartbeat) keeps the full 20-min window.
+  const scatterObservations = useMemo(
+    () =>
+      scatterGapCutoff > 0
+        ? displayChartObservations.filter(
+            (observation) => observation.timestamp >= scatterGapCutoff
+          )
+        : displayChartObservations,
+    [displayChartObservations, scatterGapCutoff]
+  );
   const latestChartGapObservation = useMemo(
     () =>
       [...displayChartObservations]
@@ -821,8 +869,8 @@ export default function DashboardClient({
   // chart-history observation only when there is no live observation at all.
   const gapObservation = analyticsObservation ?? latestChartGapObservation;
   const scatterStats = useMemo(
-    () => computeScatterStats(displayChartObservations),
-    [displayChartObservations]
+    () => computeScatterStats(scatterObservations),
+    [scatterObservations]
   );
   const derivedWarnings = useMemo(() => {
     if (!payload) {
@@ -1126,13 +1174,8 @@ export default function DashboardClient({
   return (
     <div className="monitor-shell">
       <HeaderStrip
-        mode={monitorMode}
-        selectedInstrument={marketInstrument}
-        marketVenueLabel={marketVenueLabel}
-        marketUrl={payload?.sourceStatus?.marketUrl ?? payload?.market.kalshiMarketUrl ?? null}
-        windowEndTimestamp={payload?.windowEndTs ?? null}
+        appMode={appMode}
         generatedAt={payload?.generatedAt ?? null}
-        marketDisplaySource={payload?.market.displaySource ?? null}
         lastUpdatedTs={
           payload?.market.lastUpdatedTs ??
           marketFeedStatus?.lastEventTs ??
@@ -1140,9 +1183,23 @@ export default function DashboardClient({
           currentObservation?.timestamp ??
           null
         }
-        sourceStatus={payload?.sourceStatus ?? null}
-        presentationMode={presentationMode}
+        marketDisplaySource={payload?.market.displaySource ?? null}
+        marketUrl={payload?.sourceStatus?.marketUrl ?? payload?.market.kalshiMarketUrl ?? null}
+        marketVenueLabel={marketVenueLabel}
+        mode={monitorMode}
+        onToggleAppMode={onToggleAppMode}
         onTogglePresentationMode={() => setPresentationMode((value) => !value)}
+        presentationMode={presentationMode}
+        selectedInstrument={marketInstrument}
+        sourceStatus={payload?.sourceStatus ?? null}
+        windowEndTimestamp={payload?.windowEndTs ?? null}
+      />
+
+      <MarketStateBanner
+        isLiveMode={liveMode}
+        lastKalshiUpdateTs={
+          payload?.market.lastUpdatedTs ?? marketFeedStatus?.lastEventTs ?? null
+        }
       />
 
       {statusMessages.length ? (
@@ -1232,10 +1289,9 @@ export default function DashboardClient({
               resetKey={`${marketInstrument}-${strike}`}
             />
             <ScatterDeltaChart
-              observations={displayChartObservations}
+              observations={scatterObservations}
               marketLegendLabel={marketLegendLabel}
               pausedMessage={crudeFeedPauseMessage}
-              resetKey={`${marketInstrument}-${strike}`}
             />
           </section>
 
@@ -1284,6 +1340,8 @@ export default function DashboardClient({
       ) : (
         <EmptyStatePanels isLoading={isLoading} mode={monitorMode} />
       )}
+
+      <MethodologyPanel />
     </div>
   );
 }

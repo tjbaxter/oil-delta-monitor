@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import {
   DASHBOARD_SUBTITLE,
   DASHBOARD_TITLE,
@@ -20,6 +21,8 @@ interface HeaderStripProps {
   sourceStatus: SourceStatus | null;
   presentationMode: boolean;
   onTogglePresentationMode: () => void;
+  appMode?: "live" | "replay";
+  onToggleAppMode?: () => void;
 }
 
 export default function HeaderStrip({
@@ -33,8 +36,18 @@ export default function HeaderStrip({
   lastUpdatedTs,
   sourceStatus,
   presentationMode,
-  onTogglePresentationMode
+  onTogglePresentationMode,
+  appMode,
+  onToggleAppMode
 }: HeaderStripProps) {
+  const [suppressStale, setSuppressStale] = useState(true);
+  const mountRef = useRef(Date.now());
+  useEffect(() => {
+    const remaining = 10_000 - (Date.now() - mountRef.current);
+    const timer = setTimeout(() => setSuppressStale(false), Math.max(0, remaining));
+    return () => clearTimeout(timer);
+  }, []);
+
   const generatedAtTimestamp = generatedAt ? Date.parse(generatedAt) : null;
   const snapshotWrittenTimestamp = sourceStatus?.snapshotWrittenAt
     ? Date.parse(sourceStatus.snapshotWrittenAt)
@@ -43,7 +56,8 @@ export default function HeaderStrip({
     ? Date.parse(sourceStatus.sessionStartedAt)
     : null;
   const marketFeedStatus = sourceStatus?.kalshi ?? sourceStatus?.polymarket ?? null;
-  const databentoState = sourceStatus?.databento.state ?? null;
+  const rawDatabentoState = sourceStatus?.databento.state ?? null;
+  const databentoState = suppressStale && rawDatabentoState === "stale" ? null : rawDatabentoState;
   const liveLabel =
     marketDisplaySource === "midpoint"
       ? `${marketVenueLabel} midpoint`
@@ -105,6 +119,24 @@ export default function HeaderStrip({
         </div>
       </div>
       <div className="header-meta">
+        {appMode !== undefined && onToggleAppMode ? (
+          <div className="mode-toggle-buttons mode-toggle-buttons--inline">
+            <button
+              className={`mode-toggle-btn${appMode === "replay" ? " mode-toggle-btn--active" : ""}`}
+              onClick={() => appMode !== "replay" && onToggleAppMode()}
+              type="button"
+            >
+              Replay
+            </button>
+            <button
+              className={`mode-toggle-btn${appMode === "live" ? " mode-toggle-btn--active" : ""}`}
+              onClick={() => appMode !== "live" && onToggleAppMode()}
+              type="button"
+            >
+              Live
+            </button>
+          </div>
+        ) : null}
         <button
           className="secondary-button header-toggle"
           onClick={onTogglePresentationMode}

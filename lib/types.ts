@@ -195,3 +195,46 @@ export interface ApiErrorPayload {
   error: string;
   warnings?: string[];
 }
+
+export interface CuratedSession {
+  id: string;
+  label: string;
+  description?: string | null;
+  default: boolean;
+  startTs?: number | null;
+  endTs?: number | null;
+}
+
+export interface SessionListItem {
+  id: string;
+  label: string;
+  curated: boolean;
+  default: boolean;
+  sessionStartedAt: string | null;
+  crudeRange: [number, number] | null;
+  observationCount: number;
+}
+
+export interface ReplayPricingDefaults {
+  strike: number;
+  spreadWidth: number;
+  impliedVol: number;
+  riskFreeRate: number;
+  rollingWindow: number;
+  fairGapThreshold: number;
+  deltaGapThreshold: number;
+}
+
+export interface ReplayPayload {
+  ok: true;
+  sessionId: string;
+  sessionStartedAt: string | null;
+  market: MarketMeta;
+  pricingDefaults: ReplayPricingDefaults;
+  observations: Observation[];
+  windowStartTs: number;
+  windowEndTs: number;
+  crudeLabel: string;
+  crudeSubLabel: string;
+  totalObservations: number;
+}

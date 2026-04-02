@@ -1,4 +1,4 @@
-import DashboardClient from "@/components/dashboard/DashboardClient";
+import DashboardShell from "@/components/dashboard/DashboardShell";
 import {
   DEFAULT_MONITOR_MODE,
   DEFAULT_DELTA_GAP_THRESHOLD,
@@ -16,6 +16,11 @@ import { buildBootstrapPayload } from "@/lib/polymarket";
 import type { BootstrapPayload } from "@/lib/types";
 
 const INITIAL_SNAPSHOT_TIMEOUT_MS = 150;
+
+// Default to "replay" so visitors see compelling market data immediately.
+// Set NEXT_PUBLIC_DEFAULT_APP_MODE=live in .env.local to override.
+const DEFAULT_APP_MODE: "live" | "replay" =
+  process.env.NEXT_PUBLIC_DEFAULT_APP_MODE === "live" ? "live" : "replay";
 
 async function getInitialPayload(slug: string): Promise<BootstrapPayload | null> {
   const bootstrapPromise = buildBootstrapPayload({
@@ -42,20 +47,26 @@ async function getInitialPayload(slug: string): Promise<BootstrapPayload | null>
 export default async function HomePage() {
   const initialSlug = DEFAULT_MARKET_SLUG;
   const initialMode = DEFAULT_MONITOR_MODE;
+
+  // Only pre-fetch live payload for SSR if defaulting to live mode,
+  // to avoid unnecessary work when replay is the default.
   const initialPayload =
-    initialMode === "live"
-      ? await readLiveSnapshotFromDisk()
-      : initialSlug
-        ? await getInitialPayload(initialSlug)
-        : null;
+    DEFAULT_APP_MODE === "live"
+      ? initialMode === "live"
+        ? await readLiveSnapshotFromDisk()
+        : initialSlug
+          ? await getInitialPayload(initialSlug)
+          : null
+      : null;
 
   return (
     <main>
-      <DashboardClient
-        initialPayload={initialPayload}
+      <DashboardShell
+        defaultAppMode={DEFAULT_APP_MODE}
         initialError={initialSlug ? null : "Missing default market slug."}
-        initialSlug={initialSlug}
         initialMode={initialMode}
+        initialPayload={initialPayload}
+        initialSlug={initialSlug}
       />
     </main>
   );
