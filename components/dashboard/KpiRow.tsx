@@ -5,6 +5,7 @@ import {
   formatProb,
   formatUtcTime
 } from "@/lib/format";
+import { getCMEStatus } from "@/lib/cmeCalendar";
 import type { Observation, PolyDisplaySource, SnapshotMode } from "@/lib/types";
 
 import KpiCard from "@/components/dashboard/KpiCard";
@@ -70,6 +71,8 @@ export default function KpiRow({
 }: KpiRowProps) {
   const spreadLow = strike - spreadWidth / 2;
   const spreadHigh = strike + spreadWidth / 2;
+  const cmeStatus = mode === "live" ? getCMEStatus() : null;
+  const cmeIsOpen = cmeStatus?.isOpen !== false;
   const crudeReady =
     latestObservation?.crudePrice !== null && latestObservation?.crudePrice !== undefined;
   const fairReady =
@@ -121,7 +124,9 @@ export default function KpiRow({
             ? formatPrice(latestObservation?.crudePrice)
             : isLoading
               ? "Loading"
-              : "Awaiting"
+              : !cmeIsOpen
+                ? "Closed"
+                : "Awaiting"
         }
         subtext={
           crudeReady
@@ -136,9 +141,11 @@ export default function KpiRow({
                 ? mode === "live"
                   ? "Loading live CME feed..."
                   : "Loading delayed CME history..."
-                : mode === "live"
-                  ? "Awaiting live CME feed"
-                  : "Awaiting delayed CME history"
+                : !cmeIsOpen && cmeStatus
+                  ? cmeStatus.reason
+                  : mode === "live"
+                    ? "Awaiting live CME feed"
+                    : "Awaiting delayed CME history"
         }
         accentClass={crudeFeedConnected ? "accent-crude" : "accent-neutral"}
       />

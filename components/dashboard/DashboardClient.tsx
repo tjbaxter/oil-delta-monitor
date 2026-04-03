@@ -1200,6 +1200,8 @@ export default function DashboardClient({
         lastKalshiUpdateTs={
           payload?.market.lastUpdatedTs ?? marketFeedStatus?.lastEventTs ?? null
         }
+        crudeFeedState={crudeFeedState}
+        kalshiProb={currentObservation?.polyProb ?? null}
       />
 
       {statusMessages.length ? (
