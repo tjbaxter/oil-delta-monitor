@@ -10,8 +10,8 @@ export const dynamic = "force-dynamic";
 const SESSIONS_DIR = path.join(process.cwd(), "data", "sessions");
 const CURATED_PATH = path.join(process.cwd(), "data", "curated.json");
 
-// Session IDs explicitly hidden from the dropdown (too short, uninteresting, etc.)
-const EXCLUDED_IDS = new Set(["20260401_143133"]);
+// Only these uncurated session IDs are shown in the dropdown — allowlist beats blocklist.
+const ALLOWED_UNCURATED_IDS = new Set(["20260401_165356"]);
 
 async function readJsonFile<T>(filePath: string): Promise<T | null> {
   try {
@@ -82,7 +82,7 @@ export async function GET() {
 
     // Non-curated sessions (not mentioned in curated.json at all) appended after
     const uncuratedItems: SessionListItem[] = Array.from(validDirs)
-      .filter((id) => !curatedIds.has(id) && !EXCLUDED_IDS.has(id) && (dirMeta.get(id)?.obsCount ?? 0) >= 300)
+      .filter((id) => !curatedIds.has(id) && ALLOWED_UNCURATED_IDS.has(id) && (dirMeta.get(id)?.obsCount ?? 0) >= 300)
       .sort((a, b) => b.localeCompare(a))
       .map((id): SessionListItem => ({
         id,
