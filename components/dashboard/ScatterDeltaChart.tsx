@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 
 import { computeScatterStats } from "@/lib/analytics";
 import { BG_COLOR, PANEL_BG, POLY_COLOR, THEO_COLOR } from "@/lib/constants";
@@ -19,14 +19,10 @@ const Plot = dynamic(() => import("@/components/dashboard/PlotClient"), {
   loading: () => <div className="chart-loading">Loading chart...</div>
 });
 
-interface Bounds { min: number; max: number }
-const EMPTY_BOUNDS: Bounds = { min: Infinity, max: -Infinity };
-
 interface ScatterDeltaChartProps {
   observations: Observation[];
   marketLegendLabel: string;
   pausedMessage?: string | null;
-  resetKey?: string;
 }
 
 function fitLine(
@@ -66,21 +62,9 @@ function fitLine(
 export default function ScatterDeltaChart({
   observations,
   marketLegendLabel,
-  pausedMessage,
-  resetKey
+  pausedMessage
 }: ScatterDeltaChartProps) {
-  // Ratcheted axis bounds: expand to fit new data, never shrink.
-  const xBoundsRef = useRef<Bounds>({ ...EMPTY_BOUNDS }); // CL price x-axis
-  const yBoundsRef = useRef<Bounds>({ ...EMPTY_BOUNDS }); // probability y-axis
-  const prevResetKeyRef = useRef<string | undefined>(undefined);
-
   const { data, layout } = useMemo(() => {
-    if (resetKey !== prevResetKeyRef.current) {
-      prevResetKeyRef.current = resetKey;
-      xBoundsRef.current = { ...EMPTY_BOUNDS };
-      yBoundsRef.current = { ...EMPTY_BOUNDS };
-    }
-
     const paused = Boolean(pausedMessage);
     const hasCrudeHistory = observations.some(
       (observation) => observation.crudePrice !== null
@@ -115,13 +99,14 @@ export default function ScatterDeltaChart({
       paused
         ? [
             {
-              x: 0.03,
-              y: 0.95,
+              x: 0.5,
+              y: 0.5,
               xref: "paper",
               yref: "paper",
               showarrow: false,
-              xanchor: "left",
-              align: "left",
+              xanchor: "center",
+              yanchor: "middle",
+              align: "center",
               text: pausedMessage,
               font: { color: "#95a5ba", size: 12, family: MONO_FONT }
             }
@@ -181,31 +166,25 @@ export default function ScatterDeltaChart({
             }
           ];
 
-    // Ratchet scatter axis bounds from all paired points.
-    if (polyPoints.length > 0) {
-      const allX = polyPoints.map((p) => p.x);
-      const allY = [...polyPoints.map((p) => p.y), ...theoPoints.map((p) => p.y)];
-      xBoundsRef.current = {
-        min: Math.min(xBoundsRef.current.min, Math.min(...allX)),
-        max: Math.max(xBoundsRef.current.max, Math.max(...allX))
-      };
-      yBoundsRef.current = {
-        min: Math.min(yBoundsRef.current.min, Math.min(...allY)),
-        max: Math.max(yBoundsRef.current.max, Math.max(...allY))
-      };
-    }
+    // Dynamic axis bounds from current windowed points only — never ratchet.
+    // The observations are already time-windowed upstream; ratcheting here
+    // caused the scatter to bunch into the top-right corner after long sessions.
     const xRange: [number, number] | undefined =
-      xBoundsRef.current.min < xBoundsRef.current.max
+      polyPoints.length > 0
         ? (() => {
-            const { min, max } = xBoundsRef.current;
+            const allX = polyPoints.map((p) => p.x);
+            const min = Math.min(...allX);
+            const max = Math.max(...allX);
             const pad = Math.max(0.02, (max - min) * 0.10);
             return [min - pad, max + pad];
           })()
         : undefined;
     const yRange: [number, number] | undefined =
-      yBoundsRef.current.min < yBoundsRef.current.max
+      polyPoints.length > 0
         ? (() => {
-            const { min, max } = yBoundsRef.current;
+            const allY = [...polyPoints.map((p) => p.y), ...theoPoints.map((p) => p.y)];
+            const min = Math.min(...allY);
+            const max = Math.max(...allY);
             const pad = Math.max(0.005, (max - min) * 0.10);
             return [Math.max(0, min - pad), Math.min(1, max + pad)];
           })()
@@ -366,7 +345,7 @@ export default function ScatterDeltaChart({
         uirevision: "scatter"
       }
     };
-  }, [marketLegendLabel, observations, pausedMessage, resetKey]);
+  }, [marketLegendLabel, observations, pausedMessage]);
 
   return (
     <div className="chart-panel chart-panel-wide">

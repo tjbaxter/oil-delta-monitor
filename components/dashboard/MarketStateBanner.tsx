@@ -109,14 +109,15 @@ export default function MarketStateBanner({
     return (
       <div className="market-state-banner market-state-banner--closed">
         <div className="market-state-banner-body">
-          <span className="market-state-banner-icon">🗓</span>
+          <span className="market-state-banner-icon" aria-hidden>🗓</span>
           <div className="market-state-banner-content">
             <span className="market-state-banner-headline">{banner.text}</span>
-            {banner.reopens ? (
-              <span className="market-state-banner-sub">
-                Live data resumes {banner.reopens}.
-              </span>
-            ) : null}
+            <span className="market-state-banner-sub">
+              {banner.reopens
+                ? `Live market data resumes ${banner.reopens}. `
+                : ""}
+              Click <strong>View Replay</strong> to see the dashboard in action with real historical data.
+            </span>
           </div>
         </div>
         {onSwitchToReplay ? (

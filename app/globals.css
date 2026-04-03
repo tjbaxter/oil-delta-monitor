@@ -917,53 +917,56 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 14px 18px;
-  border: 1px solid rgba(138, 145, 153, 0.35);
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid rgba(138, 145, 153, 0.3);
+  border-left: 3px solid rgba(138, 145, 153, 0.55);
   border-radius: 10px;
-  background: rgba(9, 18, 32, 0.85);
+  background: rgba(12, 22, 38, 0.92);
   color: var(--text);
-  font-size: 13px;
 }
 
 .market-state-banner-body {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 14px;
 }
 
 .market-state-banner-content {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 5px;
 }
 
 .market-state-banner-headline {
   font-weight: 600;
   color: var(--text);
-  font-size: 13px;
+  font-size: 15px;
+  line-height: 1.3;
 }
 
 .market-state-banner-sub {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 
 .market-state-banner-cta {
   background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 7px;
   color: var(--text);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  padding: 6px 14px;
+  padding: 8px 18px;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s;
+  flex-shrink: 0;
 }
 
 .market-state-banner-cta:hover {
-  background: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .market-state-banner-icon {
@@ -972,8 +975,9 @@ main {
 }
 
 .market-state-banner--closed .market-state-banner-icon {
-  font-size: 18px;
-  opacity: 0.8;
+  font-size: 20px;
+  opacity: 0.85;
+  margin-top: 1px;
 }
 
 /* ── Methodology Panel ───────────────────────────────── */

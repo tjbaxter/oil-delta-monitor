@@ -26,6 +26,7 @@ interface HeartbeatChartProps {
   crudeLabel: string;
   marketLegendLabel: string;
   pausedMessage?: string | null;
+  cmeNote?: string | null;
   resetKey?: string;
 }
 
@@ -34,6 +35,7 @@ export default function HeartbeatChart({
   crudeLabel,
   marketLegendLabel,
   pausedMessage,
+  cmeNote,
   resetKey
 }: HeartbeatChartProps) {
   // Ratcheted axis bounds: expand to fit new data, never shrink within a session.
@@ -214,7 +216,9 @@ export default function HeartbeatChart({
       data,
       layout: {
         title: {
-          text: `<span style="font-family:${MONO_FONT};font-size:10px;letter-spacing:0.14em;color:${MUTED_TITLE};">HEARTBEAT \u2014 ${marketLegendLabel.toUpperCase()} ODDS BOUNCING AROUND FAIR VALUE</span>`,
+          text: cmeNote
+            ? `<span style="font-family:${MONO_FONT};font-size:10px;letter-spacing:0.14em;color:${MUTED_TITLE};">HEARTBEAT \u2014 ${marketLegendLabel.toUpperCase()} ODDS BOUNCING AROUND FAIR VALUE</span><br><span style="font-family:${MONO_FONT};font-size:9px;color:#6b7e9a;">${cmeNote}</span>`
+            : `<span style="font-family:${MONO_FONT};font-size:10px;letter-spacing:0.14em;color:${MUTED_TITLE};">HEARTBEAT \u2014 ${marketLegendLabel.toUpperCase()} ODDS BOUNCING AROUND FAIR VALUE</span>`,
           x: 0.02,
           xanchor: "left"
         },
@@ -268,11 +272,13 @@ export default function HeartbeatChart({
           noCrudeFairMessage
             ? [
                 {
-                  x: 0.02,
-                  y: 0.98,
+                  x: 0.5,
+                  y: 0.5,
                   xref: "paper",
                   yref: "paper",
-                  align: "left",
+                  align: "center",
+                  xanchor: "center",
+                  yanchor: "middle",
                   text: noCrudeFairMessage,
                   showarrow: false,
                   font: { color: "#95a5ba", size: 11, family: MONO_FONT }
@@ -294,7 +300,7 @@ export default function HeartbeatChart({
         uirevision: "heartbeat"
       }
     };
-  }, [crudeLabel, marketLegendLabel, observations, pausedMessage, resetKey]);
+  }, [cmeNote, crudeLabel, marketLegendLabel, observations, pausedMessage, resetKey]);
 
   return (
     <div className="chart-panel">

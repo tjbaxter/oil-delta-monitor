@@ -128,30 +128,32 @@ export default function KpiRow({
             ? formatPrice(latestObservation?.crudePrice)
             : isLoading
               ? "Loading"
-              : !cmeIsOpen
+              : cmeIsClosed || !cmeIsOpen
                 ? "Closed"
                 : "Awaiting"
         }
         subtext={
-          crudeReady
-            ? !crudeFeedConnected && crudePausedLabel
-              ? crudePausedLabel
-              : mode === "live" && crudeFreshness
-                ? `${crudeSubLabel} | ${crudeFreshness} UTC`
-                : crudeSubLabel
-            : !crudeFeedConnected && crudePausedLabel
-              ? crudePausedLabel
-              : isLoading
-                ? mode === "live"
-                  ? "Loading live CME feed..."
-                  : "Loading delayed CME history..."
-                : !cmeIsOpen && cmeStatus
-                  ? cmeStatus.reason
-                  : mode === "live"
-                    ? "Awaiting live CME feed"
-                    : "Awaiting delayed CME history"
+          cmeIsClosed
+            ? (cmeReason ?? cmeStatus?.reason ?? "CME Globex closed")
+            : crudeReady
+              ? !crudeFeedConnected && crudePausedLabel
+                ? crudePausedLabel
+                : mode === "live" && crudeFreshness
+                  ? `${crudeSubLabel} | ${crudeFreshness} UTC`
+                  : crudeSubLabel
+              : !crudeFeedConnected && crudePausedLabel
+                ? crudePausedLabel
+                : isLoading
+                  ? mode === "live"
+                    ? "Loading live CME feed..."
+                    : "Loading delayed CME history..."
+                  : !cmeIsOpen && cmeStatus
+                    ? cmeStatus.reason
+                    : mode === "live"
+                      ? "Awaiting live CME feed"
+                      : "Awaiting delayed CME history"
         }
-        accentClass={crudeFeedConnected ? "accent-crude" : "accent-neutral"}
+        accentClass={cmeIsClosed ? "accent-neutral" : crudeFeedConnected ? "accent-crude" : "accent-neutral"}
       />
       <KpiCard
         label={liveMarketCardLabel}
@@ -180,7 +182,7 @@ export default function KpiRow({
         label={fairCardLabel}
         value={
           cmeIsClosed
-            ? "Closed"
+            ? "—"
             : fairPaused
               ? "Paused"
               : fairReady
@@ -191,7 +193,7 @@ export default function KpiRow({
         }
         subtext={
           cmeIsClosed
-            ? cmeReason ?? "CME Globex closed"
+            ? "Requires live CME data"
             : fairPaused
               ? fairPausedLabel
               : fairReady
@@ -209,7 +211,7 @@ export default function KpiRow({
         label={gapCardLabel}
         value={
           cmeIsClosed
-            ? "Closed"
+            ? "—"
             : fairPaused
               ? "Paused"
               : fairGapReady
@@ -220,7 +222,7 @@ export default function KpiRow({
         }
         subtext={
           cmeIsClosed
-            ? cmeReason ?? "CME Globex closed"
+            ? "Requires live CME data"
             : fairPaused
               ? fairPausedLabel
               : fairGapReady

@@ -1308,8 +1308,13 @@ export default function DashboardClient({
               marketLegendLabel={marketLegendLabel}
               pausedMessage={
                 cmeIsClosed
-                  ? "CME closed — switch to Replay to see the dashboard in action"
+                  ? "Kalshi market quotes shown — no CME crude data available. Switch to Replay to see the full dashboard."
                   : crudeFeedPauseMessage
+              }
+              cmeNote={
+                cmeIsClosed
+                  ? "Kalshi quotes only — CME crude feed offline (market holiday)"
+                  : null
               }
               resetKey={`${marketInstrument}-${strike}`}
             />
