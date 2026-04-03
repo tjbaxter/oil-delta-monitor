@@ -26,7 +26,7 @@ const MIN_DELAY_MS = 50;
 
 export function useReplayEngine(
   sessionData: ReplayPayload | null,
-  initialSpeed: ReplaySpeed = 5
+  initialSpeed: ReplaySpeed = 10
 ): ReplayEngineState {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
