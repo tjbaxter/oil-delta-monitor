@@ -679,7 +679,8 @@ export default function DashboardClient({
   // cmeStatus comes from DashboardShell (computed once, shared) — fall back to
   // a local computation only if the prop isn't provided (e.g. in tests).
   const cmeStatus = cmeStatusProp ?? getCMEStatus();
-  const cmeIsClosed = liveMode && !cmeStatus.isOpen && Boolean(rawCrudeFeedPauseMessage);
+  // Calendar is the source of truth — don't wait for the feed to time out.
+  const cmeIsClosed = liveMode && !cmeStatus.isOpen;
 
   // When CME is closed, null out the "stale/paused" messages everywhere — the
   // CME banner is the single source of truth for why things look quiet.

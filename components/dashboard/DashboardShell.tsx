@@ -6,7 +6,7 @@ import DashboardClient from "@/components/dashboard/DashboardClient";
 import ReplayClient from "@/components/dashboard/ReplayClient";
 import { getCMEStatus } from "@/lib/cmeCalendar";
 import type { CMEStatus } from "@/lib/cmeCalendar";
-import type { SnapshotMode } from "@/lib/types";
+import type { BootstrapPayload, SnapshotMode } from "@/lib/types";
 
 type AppMode = "live" | "replay";
 
@@ -26,6 +26,27 @@ export default function DashboardShell({ initialSlug, initialMode }: DashboardSh
   useEffect(() => {
     const interval = setInterval(() => setCmeStatus(getCMEStatus()), 60_000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Prefetch the live snapshot on mount, in parallel with the replay session.
+  // By the time anyone toggles to Live — even 2 seconds after page load — the
+  // browser has already received the data and DashboardClient can render frame 1
+  // with real values instead of showing "Awaiting".
+  const [prefetchedPayload, setPrefetchedPayload] = useState<BootstrapPayload | null>(null);
+  useEffect(() => {
+    fetch("/api/live-snapshot")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: unknown) => {
+        if (
+          data &&
+          typeof data === "object" &&
+          (data as BootstrapPayload).ok === true &&
+          Array.isArray((data as BootstrapPayload).observations)
+        ) {
+          setPrefetchedPayload(data as BootstrapPayload);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -49,7 +70,7 @@ export default function DashboardShell({ initialSlug, initialMode }: DashboardSh
           appMode="live"
           initialError={null}
           initialMode={initialMode}
-          initialPayload={null}
+          initialPayload={prefetchedPayload}
           initialSlug={initialSlug}
           onToggleAppMode={toggleMode}
           cmeStatus={cmeStatus}
