@@ -1185,6 +1185,58 @@ export default function DashboardClient({
 
   const hasObservations = Boolean(chartObservations.length);
 
+  // ── CME closed: replace entire dashboard body with a clean holiday hero ──
+  if (cmeIsClosed && onToggleAppMode) {
+    return (
+      <div className="monitor-shell">
+        <HeaderStrip
+          appMode={appMode}
+          generatedAt={payload?.generatedAt ?? null}
+          lastUpdatedTs={
+            payload?.market.lastUpdatedTs ??
+            marketFeedStatus?.lastEventTs ??
+            payload?.sourceStatus?.databento.lastEventTs ??
+            currentObservation?.timestamp ??
+            null
+          }
+          marketDisplaySource={payload?.market.displaySource ?? null}
+          marketUrl={payload?.sourceStatus?.marketUrl ?? payload?.market.kalshiMarketUrl ?? null}
+          marketVenueLabel={marketVenueLabel}
+          mode={monitorMode}
+          onToggleAppMode={onToggleAppMode}
+          onTogglePresentationMode={() => setPresentationMode((value) => !value)}
+          presentationMode={presentationMode}
+          selectedInstrument={marketInstrument}
+          sourceStatus={payload?.sourceStatus ?? null}
+          windowEndTimestamp={payload?.windowEndTs ?? null}
+          cmeStatus={cmeStatus}
+        />
+
+        <div className="cme-closed-hero">
+          <div className="cme-closed-hero-badge">MARKET HOLIDAY</div>
+          <h2 className="cme-closed-hero-title">
+            CME Globex closed — {cmeStatus.reason}
+          </h2>
+          <p className="cme-closed-hero-sub">
+            Live market data resumes {cmeStatus.reopens ?? "when the market reopens"}.
+          </p>
+          <button
+            className="cme-closed-hero-btn"
+            onClick={onToggleAppMode}
+            type="button"
+          >
+            View Replay →
+          </button>
+          <p className="cme-closed-hero-hint">
+            Replay shows real captured market data through the full interactive dashboard
+          </p>
+        </div>
+
+        <MethodologyPanel />
+      </div>
+    );
+  }
+
   return (
     <div className="monitor-shell">
       <HeaderStrip
