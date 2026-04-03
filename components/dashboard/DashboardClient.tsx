@@ -78,6 +78,7 @@ interface DashboardClientProps {
   initialMode: SnapshotMode;
   appMode?: "live" | "replay";
   onToggleAppMode?: () => void;
+  cmeStatus?: CMEStatus;
 }
 
 function isBootstrapPayload(value: unknown): value is BootstrapPayload {
@@ -553,7 +554,8 @@ export default function DashboardClient({
   initialSlug,
   initialMode,
   appMode,
-  onToggleAppMode
+  onToggleAppMode,
+  cmeStatus: cmeStatusProp
 }: DashboardClientProps) {
   const [payload, setPayload] = useState<BootstrapPayload | null>(initialPayload);
   const [errorMessage, setErrorMessage] = useState<string | null>(initialError);
@@ -674,12 +676,9 @@ export default function DashboardClient({
     return null;
   }, [crudeFeedState, liveMode, payload, startupGraceActive]);
 
-  // Refresh CME status every 60 seconds so the page auto-updates when markets open/close
-  const [cmeStatus, setCmeStatus] = useState<CMEStatus>(() => getCMEStatus());
-  useEffect(() => {
-    const interval = setInterval(() => setCmeStatus(getCMEStatus()), 60_000);
-    return () => clearInterval(interval);
-  }, []);
+  // cmeStatus comes from DashboardShell (computed once, shared) — fall back to
+  // a local computation only if the prop isn't provided (e.g. in tests).
+  const cmeStatus = cmeStatusProp ?? getCMEStatus();
   const cmeIsClosed = liveMode && !cmeStatus.isOpen && Boolean(rawCrudeFeedPauseMessage);
 
   // When CME is closed, null out the "stale/paused" messages everywhere — the
