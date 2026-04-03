@@ -28,6 +28,8 @@ interface KpiRowProps {
   crudeFeedState: string | null;
   fairPausedMessage: string | null;
   isLoading: boolean;
+  cmeIsClosed?: boolean;
+  cmeReason?: string;
 }
 
 function gapSignalTone(fairValueGap: number | null | undefined): {
@@ -67,7 +69,9 @@ export default function KpiRow({
   impliedVol,
   crudeFeedState,
   fairPausedMessage,
-  isLoading
+  isLoading,
+  cmeIsClosed = false,
+  cmeReason
 }: KpiRowProps) {
   const spreadLow = strike - spreadWidth / 2;
   const spreadHigh = strike + spreadWidth / 2;
@@ -175,54 +179,62 @@ export default function KpiRow({
       <KpiCard
         label={fairCardLabel}
         value={
-          fairPaused
-            ? "Paused"
-            : fairReady
-              ? formatCents(latestObservation?.fairProb)
-              : isLoading
-                ? "Loading"
-                : "Awaiting"
+          cmeIsClosed
+            ? "Closed"
+            : fairPaused
+              ? "Paused"
+              : fairReady
+                ? formatCents(latestObservation?.fairProb)
+                : isLoading
+                  ? "Loading"
+                  : "Awaiting"
         }
         subtext={
-          fairPaused
-            ? fairPausedLabel
-            : fairReady
-              ? `fair prob ${formatProb(latestObservation?.fairProb)} | ${fairCardSubtext}`
-              : isLoading
-                ? mode === "live"
-                  ? "Recomputing live fair value..."
-                  : "Loading delayed window..."
-                : "Awaiting crude-linked fair value"
+          cmeIsClosed
+            ? cmeReason ?? "CME Globex closed"
+            : fairPaused
+              ? fairPausedLabel
+              : fairReady
+                ? `fair prob ${formatProb(latestObservation?.fairProb)} | ${fairCardSubtext}`
+                : isLoading
+                  ? mode === "live"
+                    ? "Recomputing live fair value..."
+                    : "Loading delayed window..."
+                  : "Awaiting crude-linked fair value"
         }
-        accentClass={fairPaused ? "accent-neutral" : "accent-theo"}
-        valueClassName={fairPaused ? "kpi-value-neutral" : "kpi-value-theo"}
+        accentClass={cmeIsClosed || fairPaused ? "accent-neutral" : "accent-theo"}
+        valueClassName={cmeIsClosed || fairPaused ? "kpi-value-neutral" : "kpi-value-theo"}
       />
       <KpiCard
         label={gapCardLabel}
         value={
-          fairPaused
-            ? "Paused"
-            : fairGapReady
-              ? formatGapCents(gapObservation?.fairValueGap)
-              : isLoading
-                ? "Loading"
-                : "Awaiting"
+          cmeIsClosed
+            ? "Closed"
+            : fairPaused
+              ? "Paused"
+              : fairGapReady
+                ? formatGapCents(gapObservation?.fairValueGap)
+                : isLoading
+                  ? "Loading"
+                  : "Awaiting"
         }
         subtext={
-          fairPaused
-            ? fairPausedLabel
-            : fairGapReady
-              ? gapTone.message
-              : isLoading
-                ? mode === "live"
-                  ? "Waiting for live pair..."
-                  : "Loading delayed window..."
-                : "Awaiting paired gap"
+          cmeIsClosed
+            ? cmeReason ?? "CME Globex closed"
+            : fairPaused
+              ? fairPausedLabel
+              : fairGapReady
+                ? gapTone.message
+                : isLoading
+                  ? mode === "live"
+                    ? "Waiting for live pair..."
+                    : "Loading delayed window..."
+                  : "Awaiting paired gap"
         }
-        accentClass={fairPaused ? "accent-neutral" : gapTone.accentClass}
+        accentClass={cmeIsClosed || fairPaused ? "accent-neutral" : gapTone.accentClass}
         className="kpi-card-hero"
-        valueClassName={fairPaused ? "kpi-value-neutral" : "kpi-value-positive"}
-        subtextClassName={fairPaused ? undefined : gapTone.toneClass}
+        valueClassName={cmeIsClosed || fairPaused ? "kpi-value-neutral" : "kpi-value-positive"}
+        subtextClassName={cmeIsClosed || fairPaused ? undefined : gapTone.toneClass}
       />
     </section>
   );

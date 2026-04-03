@@ -19,6 +19,8 @@ import {
   nearestCrudePriceAtOrBefore,
   rollingRegressionSlope
 } from "@/lib/analytics";
+import { getCMEStatus } from "@/lib/cmeCalendar";
+import type { CMEStatus } from "@/lib/cmeCalendar";
 import {
   DEFAULT_DELTA_GAP_THRESHOLD,
   DEFAULT_FAIR_GAP_THRESHOLD,
@@ -644,7 +646,7 @@ export default function DashboardClient({
     return () => document.removeEventListener("visibilitychange", handler);
   }, [liveMode]);
 
-  const crudeFeedPauseMessage = useMemo(() => {
+  const rawCrudeFeedPauseMessage = useMemo(() => {
     if (!liveMode || !payload || crudeFeedState === "connected") {
       return null;
     }
@@ -671,6 +673,18 @@ export default function DashboardClient({
     }
     return null;
   }, [crudeFeedState, liveMode, payload, startupGraceActive]);
+
+  // Refresh CME status every 60 seconds so the page auto-updates when markets open/close
+  const [cmeStatus, setCmeStatus] = useState<CMEStatus>(() => getCMEStatus());
+  useEffect(() => {
+    const interval = setInterval(() => setCmeStatus(getCMEStatus()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
+  const cmeIsClosed = liveMode && !cmeStatus.isOpen && Boolean(rawCrudeFeedPauseMessage);
+
+  // When CME is closed, null out the "stale/paused" messages everywhere — the
+  // CME banner is the single source of truth for why things look quiet.
+  const crudeFeedPauseMessage = cmeIsClosed ? null : rawCrudeFeedPauseMessage;
   const fairAnalyticsPaused = Boolean(crudeFeedPauseMessage);
   const chartExplainers = useMemo(() => {
     const spreadLow = (strike - spreadWidth / 2).toFixed(1);
@@ -956,7 +970,7 @@ export default function DashboardClient({
       !liveMode && showSlowLoadNote && process.env.NODE_ENV !== "production"
         ? "Historical load is slow because Databento + Polymarket are being aligned server-side."
         : null,
-      crudeFeedPauseMessage,
+      cmeIsClosed ? null : crudeFeedPauseMessage,
       refreshMessage,
       ...derivedWarnings,
       errorMessage
@@ -1193,6 +1207,7 @@ export default function DashboardClient({
         selectedInstrument={marketInstrument}
         sourceStatus={payload?.sourceStatus ?? null}
         windowEndTimestamp={payload?.windowEndTs ?? null}
+        cmeStatus={cmeStatus}
       />
 
       <MarketStateBanner
@@ -1202,6 +1217,8 @@ export default function DashboardClient({
         }
         crudeFeedState={crudeFeedState}
         kalshiProb={currentObservation?.polyProb ?? null}
+        cmeStatus={cmeStatus}
+        onSwitchToReplay={appMode !== "replay" && onToggleAppMode ? onToggleAppMode : undefined}
       />
 
       {statusMessages.length ? (
@@ -1269,6 +1286,8 @@ export default function DashboardClient({
         crudeFeedState={crudeFeedState}
         fairPausedMessage={crudeFeedPauseMessage}
         isLoading={isLoading}
+        cmeIsClosed={cmeIsClosed}
+        cmeReason={cmeStatus.reason}
       />
 
       {presentationMode ? null : (
@@ -1287,13 +1306,21 @@ export default function DashboardClient({
               observations={displayChartObservations}
               crudeLabel={payload?.crudeLabel ?? "CME CL.c.0 (Databento)"}
               marketLegendLabel={marketLegendLabel}
-              pausedMessage={crudeFeedPauseMessage}
+              pausedMessage={
+                cmeIsClosed
+                  ? "CME closed — switch to Replay to see the dashboard in action"
+                  : crudeFeedPauseMessage
+              }
               resetKey={`${marketInstrument}-${strike}`}
             />
             <ScatterDeltaChart
               observations={scatterObservations}
               marketLegendLabel={marketLegendLabel}
-              pausedMessage={crudeFeedPauseMessage}
+              pausedMessage={
+                cmeIsClosed
+                  ? "CME closed — switch to Replay to see the dashboard in action"
+                  : crudeFeedPauseMessage
+              }
             />
           </section>
 

@@ -7,6 +7,7 @@ import {
   LIVE_DASHBOARD_SUBTITLE
 } from "@/lib/constants";
 import { formatUtcTime } from "@/lib/format";
+import type { CMEStatus } from "@/lib/cmeCalendar";
 import type { PolyDisplaySource, SnapshotMode, SourceStatus } from "@/lib/types";
 
 interface HeaderStripProps {
@@ -23,6 +24,7 @@ interface HeaderStripProps {
   onTogglePresentationMode: () => void;
   appMode?: "live" | "replay";
   onToggleAppMode?: () => void;
+  cmeStatus?: CMEStatus;
 }
 
 export default function HeaderStrip({
@@ -38,7 +40,8 @@ export default function HeaderStrip({
   presentationMode,
   onTogglePresentationMode,
   appMode,
-  onToggleAppMode
+  onToggleAppMode,
+  cmeStatus
 }: HeaderStripProps) {
   const [suppressStale, setSuppressStale] = useState(true);
   const mountRef = useRef(Date.now());
@@ -67,15 +70,17 @@ export default function HeaderStrip({
   const crudeStatusLabel =
     mode !== "live"
       ? "CME CL"
-      : databentoState === "stale"
-        ? "CME CL stale"
-        : databentoState === "reconnecting"
-          ? "CME CL reconnecting"
-          : databentoState === "warming"
-            ? "CME CL warming"
-            : databentoState === "disconnected"
-              ? "CME CL disconnected"
-              : "CME CL";
+      : cmeStatus && !cmeStatus.isOpen
+        ? "CME closed"
+        : databentoState === "stale"
+          ? "CME CL stale"
+          : databentoState === "reconnecting"
+            ? "CME CL reconnecting"
+            : databentoState === "warming"
+              ? "CME CL warming"
+              : databentoState === "disconnected"
+                ? "CME CL disconnected"
+                : "CME CL";
   const liveUpdateLabel =
     mode === "live" && lastUpdatedTs
       ? databentoState && databentoState !== "connected"

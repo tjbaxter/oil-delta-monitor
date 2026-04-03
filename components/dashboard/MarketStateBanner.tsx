@@ -2,66 +2,65 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { getCMEStatus } from "@/lib/cmeCalendar";
+import type { CMEStatus } from "@/lib/cmeCalendar";
 
 interface MarketStateBannerProps {
   lastKalshiUpdateTs: number | null;
   isLiveMode: boolean;
   crudeFeedState: string | null;
   kalshiProb: number | null;
+  cmeStatus: CMEStatus;
+  onSwitchToReplay?: () => void;
 }
 
-const KALSHI_STALE_MS = 5 * 60 * 1000; // 5 minutes
+const KALSHI_STALE_MS = 5 * 60 * 1000;
 const CHECK_INTERVAL_MS = 30_000;
 
-type BannerMessage = {
-  icon: string;
-  text: string;
-} | null;
+type BannerKind = "cme-closed" | "kalshi-quiet" | "kalshi-otm" | null;
 
-function buildMessage(
+interface BannerState {
+  kind: BannerKind;
+  text: string;
+  reopens: string | null;
+}
+
+function computeBanner(
   isLiveMode: boolean,
   crudeFeedState: string | null,
   lastKalshiUpdateTs: number | null,
   kalshiProb: number | null,
+  cmeStatus: CMEStatus,
   now: number
-): BannerMessage {
-  if (!isLiveMode) return null;
+): BannerState {
+  if (!isLiveMode) return { kind: null, text: "", reopens: null };
 
-  const cmeStatus = getCMEStatus(new Date(now));
   const crudeIsStale = crudeFeedState !== "connected" && crudeFeedState !== null;
   const kalshiIsStale =
     lastKalshiUpdateTs !== null && now - lastKalshiUpdateTs > KALSHI_STALE_MS;
 
-  // CME closed (holiday or weekend or maintenance) — this explains everything
   if (!cmeStatus.isOpen && crudeIsStale) {
-    const reopensNote = cmeStatus.reopens ? ` Resumes ${cmeStatus.reopens}.` : "";
     return {
-      icon: "🗓",
-      text: `${cmeStatus.reason}.${reopensNote} Switch to Replay to see the dashboard in action.`
+      kind: "cme-closed",
+      text: cmeStatus.reason,
+      reopens: cmeStatus.reopens
     };
   }
 
-  // CME is open but CL feed stale — don't repeat info already in the pause banner
-  // Just surface Kalshi-specific context if relevant.
-  if (crudeIsStale) return null;
+  if (crudeIsStale || !kalshiIsStale) return { kind: null, text: "", reopens: null };
 
-  // CME open, CL live — check Kalshi staleness
-  if (!kalshiIsStale) return null;
-
-  // Kalshi deep out-of/in-the-money: nobody trading the contract
   if (kalshiProb !== null && (kalshiProb < 0.10 || kalshiProb > 0.90)) {
     const direction = kalshiProb < 0.10 ? "deep out-of-the-money" : "deep in-the-money";
     return {
-      icon: "◌",
-      text: `Kalshi contract is ${direction} (${Math.round(kalshiProb * 100)}¢) — limited trading activity at this probability. Fair value comparison is less meaningful far from 50%.`
+      kind: "kalshi-otm",
+      text: `Kalshi contract is ${direction} (${Math.round(kalshiProb * 100)}¢) — limited trading activity at this probability. Fair value comparison is less meaningful far from 50%.`,
+      reopens: null
     };
   }
 
-  // Kalshi quiet during normal hours
   return {
-    icon: "◌",
-    text: "Kalshi WTI contract is quiet — no recent quote updates. Kalshi binary markets are typically most active during US hours (9 AM – 4 PM ET). The model continues tracking CL fair value."
+    kind: "kalshi-quiet",
+    text: "Kalshi WTI contract is quiet — no recent quote updates. Kalshi binary markets are typically most active during US hours (9 AM – 4 PM ET). The model continues tracking CL fair value.",
+    reopens: null
   };
 }
 
@@ -69,49 +68,74 @@ export default function MarketStateBanner({
   lastKalshiUpdateTs,
   isLiveMode,
   crudeFeedState,
-  kalshiProb
+  kalshiProb,
+  cmeStatus,
+  onSwitchToReplay
 }: MarketStateBannerProps) {
-  const [message, setMessage] = useState<BannerMessage>(null);
+  const [banner, setBanner] = useState<BannerState>({ kind: null, text: "", reopens: null });
+
   const lastKalshiRef = useRef(lastKalshiUpdateTs);
   const crudeFeedRef = useRef(crudeFeedState);
   const kalshiProbRef = useRef(kalshiProb);
+  const cmeStatusRef = useRef(cmeStatus);
 
   useEffect(() => { lastKalshiRef.current = lastKalshiUpdateTs; }, [lastKalshiUpdateTs]);
   useEffect(() => { crudeFeedRef.current = crudeFeedState; }, [crudeFeedState]);
   useEffect(() => { kalshiProbRef.current = kalshiProb; }, [kalshiProb]);
+  useEffect(() => { cmeStatusRef.current = cmeStatus; }, [cmeStatus]);
 
   useEffect(() => {
     if (!isLiveMode) {
-      setMessage(null);
+      setBanner({ kind: null, text: "", reopens: null });
       return;
     }
-
     const check = () => {
-      setMessage(
-        buildMessage(isLiveMode, crudeFeedRef.current, lastKalshiRef.current, kalshiProbRef.current, Date.now())
-      );
+      setBanner(computeBanner(isLiveMode, crudeFeedRef.current, lastKalshiRef.current, kalshiProbRef.current, cmeStatusRef.current, Date.now()));
     };
-
     check();
     const interval = setInterval(check, CHECK_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [isLiveMode]);
 
-  // Also re-evaluate immediately when key props change
   useEffect(() => {
     if (isLiveMode) {
-      setMessage(
-        buildMessage(isLiveMode, crudeFeedState, lastKalshiUpdateTs, kalshiProb, Date.now())
-      );
+      setBanner(computeBanner(isLiveMode, crudeFeedState, lastKalshiUpdateTs, kalshiProb, cmeStatus, Date.now()));
     }
-  }, [isLiveMode, crudeFeedState, lastKalshiUpdateTs, kalshiProb]);
+  }, [isLiveMode, crudeFeedState, lastKalshiUpdateTs, kalshiProb, cmeStatus]);
 
-  if (!message || !isLiveMode) return null;
+  if (!banner.kind || !isLiveMode) return null;
+
+  if (banner.kind === "cme-closed") {
+    return (
+      <div className="market-state-banner market-state-banner--closed">
+        <div className="market-state-banner-body">
+          <span className="market-state-banner-icon">🗓</span>
+          <div className="market-state-banner-content">
+            <span className="market-state-banner-headline">{banner.text}</span>
+            {banner.reopens ? (
+              <span className="market-state-banner-sub">
+                Live data resumes {banner.reopens}.
+              </span>
+            ) : null}
+          </div>
+        </div>
+        {onSwitchToReplay ? (
+          <button
+            className="market-state-banner-cta"
+            onClick={onSwitchToReplay}
+            type="button"
+          >
+            View Replay →
+          </button>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="market-state-banner">
-      <span className="market-state-banner-icon">{message.icon}</span>
-      {message.text}
+      <span className="market-state-banner-icon">◌</span>
+      {banner.text}
     </div>
   );
 }

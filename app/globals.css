@@ -913,9 +913,67 @@ main {
   font-size: 12px;
 }
 
+.market-state-banner--closed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border: 1px solid rgba(138, 145, 153, 0.35);
+  border-radius: 10px;
+  background: rgba(9, 18, 32, 0.85);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.market-state-banner-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.market-state-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.market-state-banner-headline {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.market-state-banner-sub {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.market-state-banner-cta {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.market-state-banner-cta:hover {
+  background: rgba(255, 255, 255, 0.13);
+}
+
 .market-state-banner-icon {
   font-size: 14px;
   opacity: 0.6;
+}
+
+.market-state-banner--closed .market-state-banner-icon {
+  font-size: 18px;
+  opacity: 0.8;
 }
 
 /* ── Methodology Panel ───────────────────────────────── */
