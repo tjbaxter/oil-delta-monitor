@@ -94,7 +94,7 @@ export default function ReplayClient({ appMode, onToggleAppMode }: ReplayClientP
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const { visibleObservations, currentIndex, totalCount, isPlaying, speed,
-    currentTimestamp, play, pause, seek, setSpeed, restart } = useReplayEngine(sessionData, 5);
+    currentTimestamp, play, pause, seek, setSpeed, restart } = useReplayEngine(sessionData, 10);
 
   // Load session list on mount
   useEffect(() => {
