@@ -33,7 +33,7 @@ The ratio of slopes is the edge signal.
 
 **Right chart — Delta scatter.** Each dot is a snapshot: x = CL price, y = probability. The slope of each regression line is the delta — how many probability points move per $1 in CL. Comparing the two slopes tells you whether the market is over- or under-reacting relative to the model.
 
-**KPI cards.** CL price (Databento MBP-1), Kalshi mid, call spread fair value, and the gap in cents. The gap card turns red (sell signal — market rich) or green (buy signal — market cheap).
+**KPI cards.** CL price (Databento MBP-1), Kalshi mid, call spread fair value, and the gap in cents. The gap card turns red (sell signal, market rich) or green (buy signal, market cheap).
 
 ![Scatter detail](docs/scatter.png)
 
@@ -98,9 +98,9 @@ Python 3.12, Next.js 15, TypeScript, Databento (CME CL.c.0 MBP-1), Kalshi REST A
 
 The scatter panel shows:
 
-- **Δ kalshi** — regression slope of Kalshi probability vs CL price. This is the market's implied delta.
-- **Δ theo** — regression slope of BSM fair value vs CL price. This is the model delta.
-- **ratio** — kalshi delta / theo delta.
+- **Δ kalshi**: regression slope of Kalshi probability vs CL price. This is the market's implied delta.
+- **Δ theo**: regression slope of BSM fair value vs CL price. This is the model delta.
+- **ratio**: kalshi delta / theo delta.
 
 A ratio above 1.0 means Kalshi overreacts to CL moves relative to the model. Below 1.0, it underreacts. Persistent ratios far from 1.0 are the market-making opportunity Kris describes.
 
