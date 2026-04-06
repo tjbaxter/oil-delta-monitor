@@ -598,6 +598,9 @@ export default function DashboardClient({
   const prevCrudeFeedStateRef = useRef<string | null>(null);
   const reconnectGraceEndRef = useRef<number>(0);
   const hiddenAtRef = useRef<number | null>(null);
+  // Ref so the visibility handler can call loadSnapshot without a forward-reference error.
+  // (loadSnapshot is declared later via useCallback; a ref avoids the TDZ issue.)
+  const loadSnapshotRef = useRef<() => void>(() => {});
 
   // useState so expiry triggers a re-render (a ref would not).
   // True for the first 15s after hydration — prevents the "stale" banner from
@@ -634,14 +637,14 @@ export default function DashboardClient({
         const hiddenAt = hiddenAtRef.current;
         hiddenAtRef.current = null;
         if (hiddenAt !== null && Date.now() - hiddenAt > 60_000) {
-          void loadSnapshot();
+          loadSnapshotRef.current();
         }
       }
     };
 
     document.addEventListener("visibilitychange", handler);
     return () => document.removeEventListener("visibilitychange", handler);
-  }, [liveMode, loadSnapshot]);
+  }, [liveMode]);
 
   const rawCrudeFeedPauseMessage = useMemo(() => {
     if (!liveMode || !payload || crudeFeedState === "connected") {
@@ -1118,6 +1121,11 @@ export default function DashboardClient({
     strike,
     useMarketExpiry
   ]);
+
+  // Keep the ref current so the visibility handler always calls the latest version.
+  useEffect(() => {
+    loadSnapshotRef.current = () => { void loadSnapshot(); };
+  }, [loadSnapshot]);
 
   useEffect(() => {
     if (initialLoadStartedRef.current) {
