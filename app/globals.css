@@ -1161,12 +1161,29 @@ main {
   50%       { opacity: 0.35; }
 }
 
+.kalshi-liquidity-banner__text-outer {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .kalshi-liquidity-banner__text {
+  display: inline-block;
   font-family: var(--font-mono, monospace);
   font-size: 11px;
   color: rgba(255, 255, 255, 0.65);
   line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  animation: kalshi-banner-scroll 24s linear infinite;
+  will-change: transform;
+}
+
+@keyframes kalshi-banner-scroll {
+  /* Pause at start so the beginning of the message is readable */
+  0%, 18%  { transform: translateX(0); }
+  /* Scroll the full text width to the left */
+  82%      { transform: translateX(-100%); }
+  /* Instant jump back — happens in <1 frame so it's invisible */
+  82.01%   { transform: translateX(0); }
+  100%     { transform: translateX(0); }
 }

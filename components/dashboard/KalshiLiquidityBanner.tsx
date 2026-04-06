@@ -47,7 +47,9 @@ export default function KalshiLiquidityBanner({ liquidity, snapshotAgeMs }: Prop
   return (
     <div className="kalshi-liquidity-banner" role="status" aria-live="polite">
       <span className="kalshi-liquidity-banner__dot">{message.icon}</span>
-      <span className="kalshi-liquidity-banner__text">{message.text}</span>
+      <span className="kalshi-liquidity-banner__text-outer">
+        <span className="kalshi-liquidity-banner__text">{message.text}</span>
+      </span>
     </div>
   );
 }
