@@ -316,8 +316,11 @@ function buildLivePresentationChartPayload(
 
   const livePolyHistory = dedupeProbabilityHistory([
     ...payload.polyHistory.filter(
-      (point) =>
-        point.seededFrom === "live_recorder" && point.timestamp >= windowStartTs
+      (point) => point.timestamp >= windowStartTs
+      // seededFrom is intentionally not restricted here: "kalshi_trade_history" seed points
+      // are valid chart data and must appear alongside "live_recorder" points. The timestamp
+      // window already handles recency — filtering by source silently drops startup history
+      // and causes the scatter to appear empty until enough live ticks accumulate.
     ),
     ...((payload.market.displayProb !== null &&
       payload.market.displaySource !== null &&
