@@ -20,7 +20,7 @@ export default function MethodologyPanel() {
           <section className="methodology-section">
             <h3 className="methodology-title">What this monitors</h3>
             <p className="methodology-body">
-              The dashboard tracks the gap between two expressions of the same probability — the
+              The dashboard tracks the gap between two expressions of the same probability: the
               chance WTI crude oil settles above a given strike at daily expiry:
             </p>
             <ul className="methodology-list">
@@ -49,7 +49,7 @@ export default function MethodologyPanel() {
             <h3 className="methodology-title">The delta comparison</h3>
             <p className="methodology-body">
               The scatter plot regression slopes measure{" "}
-              <strong className="explain-keyword">implied delta</strong> — how many probability
+              <strong className="explain-keyword">implied delta</strong>: how many probability
               points each price moves per $1 in CL:
             </p>
             <ul className="methodology-list">
@@ -90,7 +90,7 @@ export default function MethodologyPanel() {
               >
                 Kris Abdelmessih&apos;s framework
               </a>{" "}
-              — mapping binary event pricing to vanilla option spreads to identify cross-venue
+              mapping binary event pricing to vanilla option spreads to identify cross-venue
               dislocations.
             </p>
           </section>

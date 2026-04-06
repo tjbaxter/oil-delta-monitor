@@ -745,12 +745,12 @@ export default function DashboardClient({
       whatYoureSeeingTitle: "What You're Seeing",
       whatYoureSeeing: (
         <>
-          The orange line is the <B>value of the {spreadLow}/{spreadHigh} call spread</B> &mdash;
+          The orange line is the <B>value of the {spreadLow}/{spreadHigh} call spread</B>,
           priced via Black-Scholes at {ivLabel} IV as CL moves. It is the{" "}
           <B>fair probability</B> that CL settles above ${strikeLabel}. It moves smoothly because
           vol is held constant and only S changes. The teal line is{" "}
           <B>{venue}&apos;s market price</B> for the same question. It tracks the same fundamental
-          but bounces harder &mdash; order flow, sentiment, and liquidity make it noisy.{" "}
+          but bounces harder, as order flow, sentiment, and liquidity make it noisy.{" "}
           <B>The gap between them is the trade.</B>
         </>
       ),
@@ -758,10 +758,10 @@ export default function DashboardClient({
       readingScatter: (
         <>
           Each dot is a snapshot: x&nbsp;=&nbsp;CL price, y&nbsp;=&nbsp;probability. The{" "}
-          <B>slope of the regression line is the delta</B> &mdash; how much probability moves per
+          <B>slope of the regression line is the delta</B>: how much probability moves per
           $1 in CL. The call spread slope is your <B>model delta</B>. The {venue} slope is the{" "}
           <B>implied delta</B>. If {venue}&apos;s slope is steeper, the market is overreacting to
-          price moves &mdash; you&apos;d sell {venue} and hedge with futures. The{" "}
+          price moves, so you&apos;d sell {venue} and hedge with futures. The{" "}
           <B>ratio of slopes suggests an edge</B>.
         </>
       )
