@@ -166,9 +166,21 @@ export interface BootstrapParams {
   expiryOverride: string | null;
 }
 
+export type KalshiLiquidityStatus = "normal" | "low" | "closed";
+
+export interface KalshiLiquidity {
+  status: KalshiLiquidityStatus;
+  reason: string;
+  lastMeaningfulChangeUtc: string | null;
+  tickCount5m: number;
+  spreadCents: number | null;
+  midStdev5m: number | null;
+}
+
 export interface BootstrapPayload {
   ok: true;
   mode: SnapshotMode;
+  kalshiLiquidity?: KalshiLiquidity | null;
   market: MarketMeta;
   providerMode: ProviderMode;
   crudeLabel: string;

@@ -1123,3 +1123,50 @@ main {
   margin: 0;
   opacity: 0.7;
 }
+
+/* ── Kalshi liquidity banner ──────────────────────────────────────────── */
+.kalshi-liquidity-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  animation: kalshi-banner-fadein 0.3s ease;
+}
+
+@keyframes kalshi-banner-fadein {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.kalshi-liquidity-banner__dot {
+  color: #F5A623;
+  font-size: 9px;
+  line-height: 1;
+  flex-shrink: 0;
+  animation: kalshi-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes kalshi-dot-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+.kalshi-liquidity-banner__text {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

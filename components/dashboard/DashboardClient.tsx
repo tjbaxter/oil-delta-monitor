@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ControlsPanel from "@/components/dashboard/ControlsPanel";
 import EmptyStatePanels from "@/components/dashboard/EmptyStatePanels";
 import HeaderStrip from "@/components/dashboard/HeaderStrip";
+import KalshiLiquidityBanner from "@/components/dashboard/KalshiLiquidityBanner";
 import KpiRow from "@/components/dashboard/KpiRow";
 import MarketStateBanner from "@/components/dashboard/MarketStateBanner";
 import MetricsStrip from "@/components/dashboard/MetricsStrip";
@@ -40,6 +41,7 @@ import type {
   BootstrapPayload,
   CrudePoint,
   FeedStatus,
+  KalshiLiquidity,
   Observation,
   ProbabilityPoint,
   SnapshotMode
@@ -681,6 +683,15 @@ export default function DashboardClient({
   const cmeStatus = cmeStatusProp ?? getCMEStatus();
   // Calendar is the source of truth — don't wait for the feed to time out.
   const cmeIsClosed = liveMode && !cmeStatus.isOpen;
+
+  // Age of the live snapshot, used by KalshiLiquidityBanner to suppress itself
+  // when the ingestor is stale (the "Last update" pill already covers that case).
+  const snapshotAgeMs = useMemo(() => {
+    if (!liveMode || !payload?.generatedAt) return null;
+    return Date.now() - new Date(payload.generatedAt).getTime();
+  }, [liveMode, payload?.generatedAt]);
+
+  const kalshiLiquidity = liveMode ? (payload?.kalshiLiquidity ?? null) : null;
 
   // When CME is closed, null out the "stale/paused" messages everywhere — the
   // CME banner is the single source of truth for why things look quiet.
@@ -1369,6 +1380,14 @@ export default function DashboardClient({
                   : null
               }
               resetKey={`${marketInstrument}-${strike}`}
+              liquidityBanner={
+                !cmeIsClosed ? (
+                  <KalshiLiquidityBanner
+                    liquidity={kalshiLiquidity}
+                    snapshotAgeMs={snapshotAgeMs}
+                  />
+                ) : null
+              }
             />
             <ScatterDeltaChart
               observations={scatterObservations}

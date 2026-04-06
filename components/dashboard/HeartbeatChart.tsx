@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useRef } from "react";
+import React, { useMemo, useRef } from "react";
 
 import { BG_COLOR, PANEL_BG, POLY_COLOR, THEO_COLOR } from "@/lib/constants";
 import type { Observation } from "@/lib/types";
@@ -28,6 +28,7 @@ interface HeartbeatChartProps {
   pausedMessage?: string | null;
   cmeNote?: string | null;
   resetKey?: string;
+  liquidityBanner?: React.ReactNode;
 }
 
 export default function HeartbeatChart({
@@ -36,7 +37,8 @@ export default function HeartbeatChart({
   marketLegendLabel,
   pausedMessage,
   cmeNote,
-  resetKey
+  resetKey,
+  liquidityBanner,
 }: HeartbeatChartProps) {
   // Ratcheted axis bounds: expand to fit new data, never shrink within a session.
   // Refs are safe to mutate inside useMemo — they're not state and don't cause re-renders.
@@ -304,6 +306,7 @@ export default function HeartbeatChart({
 
   return (
     <div className="chart-panel">
+      {liquidityBanner}
       <Plot
         data={data as never[]}
         layout={layout as never}

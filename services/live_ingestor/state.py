@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
-from math import erf, exp, log, sqrt
+from math import erf, exp, log, sqrt, isfinite
+from statistics import stdev
 from threading import RLock
 from typing import Any
 
@@ -387,6 +388,129 @@ def build_observations(
     return recomputed[-max_points:]
 
 
+_FIVE_MIN_MS = 5 * 60 * 1_000
+_MEANINGFUL_CHANGE_CENTS = 0.5  # 0.5¢ = 0.005 in dollar terms
+_LOW_HYSTERESIS_MS = 2 * 60 * 1_000   # stay "low" at least 2 min
+_NORMAL_HYSTERESIS_MS = 1 * 60 * 1_000  # stay "normal" at least 1 min
+
+
+class KalshiLiquidityMonitor:
+    """
+    Tracks Kalshi orderbook liquidity over a 5-minute rolling window.
+
+    Status values:
+      "closed"  – no active contract (market.closed or market.active==False)
+      "low"     – contract open but at least two of three thinness signals fire
+      "normal"  – healthy order flow
+    """
+
+    def __init__(self) -> None:
+        # Deque of (timestamp_ms, mid_dollars) for unique mid changes
+        self._mid_window: deque[tuple[int, float]] = deque()
+        # Current spread in dollars (updated on every poll)
+        self._latest_spread_dollars: float | None = None
+        # Last mid that counted as a "meaningful move"
+        self._last_meaningful_mid: float | None = None
+        self._last_meaningful_ts_ms: int | None = None
+        # Hysteresis tracking
+        self._status: str = "normal"
+        self._status_since_ms: int = 0
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def record(
+        self,
+        *,
+        mid: float | None,
+        spread_dollars: float | None,
+        now_ms: int,
+        market_closed: bool,
+        market_active: bool,
+    ) -> None:
+        """Call on every Kalshi poll cycle."""
+        if market_closed or not market_active:
+            self._status = "closed"
+            self._status_since_ms = now_ms
+            return
+
+        # Prune stale window entries
+        cutoff = now_ms - _FIVE_MIN_MS
+        while self._mid_window and self._mid_window[0][0] < cutoff:
+            self._mid_window.popleft()
+
+        # Record mid if it changed
+        if mid is not None and isfinite(mid):
+            last = self._mid_window[-1][1] if self._mid_window else None
+            if last is None or abs(mid - last) > 1e-9:
+                self._mid_window.append((now_ms, mid))
+            # Meaningful movement threshold
+            if self._last_meaningful_mid is None or abs(mid - self._last_meaningful_mid) >= (_MEANINGFUL_CHANGE_CENTS / 100.0):
+                self._last_meaningful_mid = mid
+                self._last_meaningful_ts_ms = now_ms
+
+        if spread_dollars is not None and isfinite(spread_dollars):
+            self._latest_spread_dollars = spread_dollars
+
+        # Evaluate two-of-three conditions
+        mids = [m for _, m in self._mid_window]
+        tick_count = len(mids)
+        spread_cents = (self._latest_spread_dollars * 100) if self._latest_spread_dollars is not None else None
+
+        c1 = tick_count < 5
+        c2 = (spread_cents is None) or (spread_cents > 5)
+        c3 = (len(mids) < 2) or (stdev(mids) < 0.005)
+
+        is_thin = sum([c1, c2, c3]) >= 2
+        desired = "low" if is_thin else "normal"
+        self._apply_hysteresis(desired, now_ms)
+
+    def as_dict(self) -> dict[str, Any]:
+        mids = [m for _, m in self._mid_window]
+        spread_cents = (
+            round(self._latest_spread_dollars * 100, 2)
+            if self._latest_spread_dollars is not None
+            else None
+        )
+        last_change_iso: str | None = None
+        if self._last_meaningful_ts_ms is not None:
+            last_change_iso = to_iso_z(
+                datetime.fromtimestamp(self._last_meaningful_ts_ms / 1000, tz=UTC)
+            )
+        return {
+            "status": self._status,
+            "reason": self._status_reason(),
+            "lastMeaningfulChangeUtc": last_change_iso,
+            "tickCount5m": len(mids),
+            "spreadCents": spread_cents,
+            "midStdev5m": round(stdev(mids), 6) if len(mids) >= 2 else None,
+        }
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+
+    def _apply_hysteresis(self, desired: str, now_ms: int) -> None:
+        if desired == self._status:
+            return
+        if self._status == "low" and desired == "normal":
+            if now_ms - self._status_since_ms < _LOW_HYSTERESIS_MS:
+                return
+        if self._status == "normal" and desired == "low":
+            if now_ms - self._status_since_ms < _NORMAL_HYSTERESIS_MS:
+                return
+        self._status = desired
+        self._status_since_ms = now_ms
+
+    def _status_reason(self) -> str:
+        if self._status == "closed":
+            return "No active Kalshi WTI contract"
+        if self._status == "low":
+            return "Thin orderbook: low tick activity, wide spread, or flat price"
+        return "Normal"
+
+
 @dataclass
 class FeedHealth:
     state: str = "warming"
@@ -519,6 +643,7 @@ class LiveState:
         self.kalshi_status = FeedHealth(detail=f"series {config.kalshi_series_ticker}")
         self.snapshot_written_at: datetime | None = None
         self.loaded_previous_snapshot = False
+        self.kalshi_liquidity = KalshiLiquidityMonitor()
 
     def _reset_market_state_locked(self, market_ticker: str | None = None) -> None:
         market_ticker = market_ticker or ""
@@ -888,6 +1013,14 @@ class LiveState:
                     }
                 )
 
+            self.kalshi_liquidity.record(
+                mid=self.market.midpoint,
+                spread_dollars=self.market.spread,
+                now_ms=timestamp_ms,
+                market_closed=self.market.closed,
+                market_active=self.market.active,
+            )
+
     def update_crude_quote(
         self,
         *,
@@ -1122,6 +1255,7 @@ class LiveState:
             crude_current_price = self.crude.current_price
             crude_label = self.crude.label
             crude_sub_label = self.crude.sub_label
+            kalshi_liquidity_dict = self.kalshi_liquidity.as_dict()
         market_ticker = market.get("marketTicker") or market.get("slug") or ""
         market_strike = safe_float(market.get("contractStrike")) or safe_float(
             self.config.pricing_defaults["strike"]
@@ -1151,6 +1285,7 @@ class LiveState:
         return {
             "ok": True,
             "mode": "live",
+            "kalshiLiquidity": kalshi_liquidity_dict,
             "market": market,
             "providerMode": "databento_live_mbp1",
             "crudeLabel": crude_label,
