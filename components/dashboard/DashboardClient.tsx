@@ -598,10 +598,6 @@ export default function DashboardClient({
   const prevCrudeFeedStateRef = useRef<string | null>(null);
   const reconnectGraceEndRef = useRef<number>(0);
   const hiddenAtRef = useRef<number | null>(null);
-  // When the tab is foregrounded after >60s in the background, set this to
-  // Date.now() so the scatter only shows post-gap observations. The heartbeat
-  // is unaffected — it keeps showing the full windowed session history.
-  const [scatterGapCutoff, setScatterGapCutoff] = useState<number>(0);
 
   // useState so expiry triggers a re-render (a ref would not).
   // True for the first 15s after hydration — prevents the "stale" banner from
@@ -623,11 +619,9 @@ export default function DashboardClient({
     prevCrudeFeedStateRef.current = crudeFeedState;
   }, [crudeFeedState]);
 
-  // Page Visibility API — detect Chrome background tab throttling.
-  // When the tab has been hidden for >60s and comes back, old observations
-  // from before the gap are still within the 20-min time window but represent
-  // a different price regime. Reset the scatter cutoff so only post-gap data
-  // is shown. The heartbeat chart is unaffected.
+  // Page Visibility API — when the tab returns from a long background period,
+  // trigger an immediate snapshot reload so both charts get fresh data without
+  // wiping the scatter's existing history.
   useEffect(() => {
     if (!liveMode) {
       return undefined;
@@ -640,14 +634,14 @@ export default function DashboardClient({
         const hiddenAt = hiddenAtRef.current;
         hiddenAtRef.current = null;
         if (hiddenAt !== null && Date.now() - hiddenAt > 60_000) {
-          setScatterGapCutoff(Date.now());
+          void loadSnapshot();
         }
       }
     };
 
     document.addEventListener("visibilitychange", handler);
     return () => document.removeEventListener("visibilitychange", handler);
-  }, [liveMode]);
+  }, [liveMode, loadSnapshot]);
 
   const rawCrudeFeedPauseMessage = useMemo(() => {
     if (!liveMode || !payload || crudeFeedState === "connected") {
@@ -828,17 +822,9 @@ export default function DashboardClient({
         : chartObservations,
     [chartObservations, fairAnalyticsPaused]
   );
-  // Scatter-only view: exclude observations from before the last background gap.
-  // displayChartObservations (used by the heartbeat) keeps the full 20-min window.
-  const scatterObservations = useMemo(
-    () =>
-      scatterGapCutoff > 0
-        ? displayChartObservations.filter(
-            (observation) => observation.timestamp >= scatterGapCutoff
-          )
-        : displayChartObservations,
-    [displayChartObservations, scatterGapCutoff]
-  );
+  // Scatter uses the same observation window as the heartbeat. Both charts are
+  // always in lockstep — the scatter never shows fewer points than the heartbeat.
+  const scatterObservations = displayChartObservations;
   const latestChartGapObservation = useMemo(
     () =>
       [...displayChartObservations]
