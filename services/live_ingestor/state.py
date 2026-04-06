@@ -390,8 +390,7 @@ def build_observations(
 
 _FIVE_MIN_MS = 5 * 60 * 1_000
 _MEANINGFUL_CHANGE_CENTS = 0.5  # 0.5¢ = 0.005 in dollar terms
-_LOW_HYSTERESIS_MS = 3 * 60 * 1_000   # stay "low" at least 3 min — single ticks shouldn't clear the banner
-_NORMAL_HYSTERESIS_MS = 1 * 60 * 1_000  # stay "normal" at least 1 min
+_LOW_HYSTERESIS_MS = 3 * 60 * 1_000   # conditions must be clear for 3 full minutes before banner drops
 
 
 class KalshiLiquidityMonitor:
@@ -415,6 +414,10 @@ class KalshiLiquidityMonitor:
         # Hysteresis tracking
         self._status: str = "normal"
         self._status_since_ms: int = 0
+        # Timestamp of the last poll where is_thin evaluated True.
+        # The low→normal transition requires this to be _LOW_HYSTERESIS_MS
+        # in the past — i.e., conditions have been *continuously* clear.
+        self._last_thin_ts_ms: int = 0
 
     # ------------------------------------------------------------------
     # Public API
@@ -460,10 +463,15 @@ class KalshiLiquidityMonitor:
 
         c1 = tick_count < 5
         c2 = (spread_cents is None) or (spread_cents > 5)
-        c3 = (len(mids) < 2) or (stdev(mids) < 0.005)
+        # Threshold raised to 0.01 (1¢): a line oscillating 0.5–1¢ still counts as flat.
+        c3 = (len(mids) < 2) or (stdev(mids) < 0.01)
 
         is_thin = sum([c1, c2, c3]) >= 2
         desired = "low" if is_thin else "normal"
+        # Track the last moment conditions evaluated as thin so the continuous-clear
+        # requirement in _apply_hysteresis can use the right reference point.
+        if is_thin:
+            self._last_thin_ts_ms = now_ms
         self._apply_hysteresis(desired, now_ms)
 
     def as_dict(self) -> dict[str, Any]:
@@ -495,11 +503,13 @@ class KalshiLiquidityMonitor:
         if desired == self._status:
             return
         if self._status == "low" and desired == "normal":
-            if now_ms - self._status_since_ms < _LOW_HYSTERESIS_MS:
+            # Only clear the banner when conditions have been *continuously* clear
+            # for the full hysteresis window.  _last_thin_ts_ms is updated every
+            # cycle that is_thin is True, so any thin blip resets this countdown.
+            if now_ms - self._last_thin_ts_ms < _LOW_HYSTERESIS_MS:
                 return
-        if self._status == "normal" and desired == "low":
-            if now_ms - self._status_since_ms < _NORMAL_HYSTERESIS_MS:
-                return
+        # normal → low: no hysteresis — the banner must appear immediately when
+        # conditions are met.  Delaying it was the primary cause of the missing banner.
         self._status = desired
         self._status_since_ms = now_ms
 
