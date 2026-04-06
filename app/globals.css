@@ -135,6 +135,16 @@ main {
   font-weight: 500;
 }
 
+.live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  flex-shrink: 0;
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
 .controls-panel {
   border: 1px solid rgba(22, 40, 58, 0.6);
   border-radius: 12px;

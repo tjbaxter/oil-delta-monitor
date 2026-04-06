@@ -96,7 +96,10 @@ export default function HeaderStrip({
           {mode === "live" ? LIVE_DASHBOARD_SUBTITLE : DASHBOARD_SUBTITLE}
         </div>
         <div className="pill-row">
-          <span className="status-pill">{mode === "live" ? "Live" : "T+1 delayed"}</span>
+          <span className="status-pill">
+            {mode === "live" && <span className="live-dot" aria-hidden="true" />}
+            {mode === "live" ? "Live" : "T+1 delayed"}
+          </span>
           <span className="status-pill">{crudeStatusLabel}</span>
           <span className="status-pill">
             {mode === "live" ? liveLabel : "Poly trade history"}
