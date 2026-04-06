@@ -355,8 +355,20 @@ function buildLivePresentationChartPayload(
     return candidate;
   })();
 
+  // When no CL point exists before the window (e.g. after an ingestor restart
+  // before 20 min of throttled history accumulates), use the first available
+  // point inside the window as a synthetic anchor placed just before windowStartTs.
+  // This forward-fills the orange fair-value and grey CL lines across the full
+  // chart width instead of leaving them absent for the pre-data portion.
+  const firstCrudeInWindow = lastCrudeBeforeWindow
+    ? null
+    : (payload.crudeHistory.find((p) => p.timestamp >= windowStartTs) ?? null);
+  const crudeWindowAnchor: CrudePoint | null =
+    lastCrudeBeforeWindow ??
+    (firstCrudeInWindow ? { ...firstCrudeInWindow, timestamp: windowStartTs - 1 } : null);
+
   const liveCrudeHistory = dedupeCrudeHistory([
-    ...(lastCrudeBeforeWindow ? [lastCrudeBeforeWindow] : []),
+    ...(crudeWindowAnchor ? [crudeWindowAnchor] : []),
     ...payload.crudeHistory.filter((point) => point.timestamp >= windowStartTs),
     ...((payload.crudeCurrentPrice !== null &&
       currentCrudeTs !== null &&
