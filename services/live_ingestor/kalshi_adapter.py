@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta
+import logging
 from threading import Thread
 import time
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from config import IngestorConfig
 from kalshi_auth import KalshiAuth

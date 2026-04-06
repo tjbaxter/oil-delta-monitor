@@ -853,6 +853,24 @@ class LiveState:
         with self.lock:
             return self.databento_status.last_transport_ts
 
+    def tick_liquidity_monitor(self, now_ms: int | None = None) -> None:
+        """Tick the KalshiLiquidityMonitor on every recorder loop iteration.
+
+        update_poly_quote() (which normally calls record()) is skipped when the
+        Kalshi quote is unchanged.  Without this call, the monitor's 5-minute
+        window is never pruned during flat markets, so stale pre-flatness ticks
+        keep c1 and c3 False and the banner never fires.
+        """
+        current_ms = now_ms or utc_now_ms()
+        with self.lock:
+            self.kalshi_liquidity.record(
+                mid=self.market.midpoint,
+                spread_dollars=self.market.spread,
+                now_ms=current_ms,
+                market_closed=self.market.closed,
+                market_active=self.market.active,
+            )
+
     def mark_snapshot_written(self, when: datetime | None = None) -> None:
         with self.lock:
             self.snapshot_written_at = when or utc_now()

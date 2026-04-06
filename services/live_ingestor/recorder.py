@@ -164,6 +164,7 @@ class Recorder:
         _last_rotation = 0.0
         while True:
             self.state.mark_staleness()
+            self.state.tick_liquidity_monitor()
             appended = self.maybe_append_observation()
             self.write_snapshot(force=appended)
             now = time.monotonic()
