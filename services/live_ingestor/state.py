@@ -391,6 +391,11 @@ def build_observations(
 _FIVE_MIN_MS = 5 * 60 * 1_000
 _MEANINGFUL_CHANGE_CENTS = 0.5  # 0.5¢ = 0.005 in dollar terms
 _LOW_HYSTERESIS_MS = 3 * 60 * 1_000   # conditions must be clear for 3 full minutes before banner drops
+# CL MBP-1 emits ~1 000–2 000 ticks/min; storing every tick fills the 4 000-point
+# crude_history deque in under 3 minutes, leaving only a 3-min orange line instead
+# of the full 20-min chart window.  Rate-limit storage to one point per second —
+# 20 min × 60 pts/min = 1 200 points max, well within live_history_limit.
+_CL_STORE_INTERVAL_MS = 1_000
 
 
 class KalshiLiquidityMonitor:
@@ -654,6 +659,9 @@ class LiveState:
         self.snapshot_written_at: datetime | None = None
         self.loaded_previous_snapshot = False
         self.kalshi_liquidity = KalshiLiquidityMonitor()
+        # Timestamp of the last CL tick stored into crude_history; used to
+        # throttle high-frequency MBP-1 writes (see _CL_STORE_INTERVAL_MS).
+        self._last_crude_stored_ts_ms: int = 0
 
     def _reset_market_state_locked(self, market_ticker: str | None = None) -> None:
         market_ticker = market_ticker or ""
@@ -1088,18 +1096,24 @@ class LiveState:
             self.crude.last_updated_ts = timestamp_ms
 
             if current_price is not None:
-                self._append_crude_point(
-                    {
-                        "timestamp": timestamp_ms,
-                        "price": current_price,
-                        "bid": self.crude.best_bid,
-                        "ask": self.crude.best_ask,
-                        "midpoint": self.crude.midpoint,
-                        "lastTrade": self.crude.last_trade,
-                        "markSource": self.crude.mark_source,
-                        "seededFrom": history_source,
-                    }
-                )
+                # Throttle: only store one CL point per _CL_STORE_INTERVAL_MS.
+                # MBP-1 fires ~1 000–2 000 ticks/min; without throttling the
+                # 4 000-point deque fills in ~3 min and the orange/CL chart lines
+                # only span that short window instead of the full 20-min display.
+                if timestamp_ms - self._last_crude_stored_ts_ms >= _CL_STORE_INTERVAL_MS:
+                    self._append_crude_point(
+                        {
+                            "timestamp": timestamp_ms,
+                            "price": current_price,
+                            "bid": self.crude.best_bid,
+                            "ask": self.crude.best_ask,
+                            "midpoint": self.crude.midpoint,
+                            "lastTrade": self.crude.last_trade,
+                            "markSource": self.crude.mark_source,
+                            "seededFrom": history_source,
+                        }
+                    )
+                    self._last_crude_stored_ts_ms = timestamp_ms
 
     def current_record_line(self) -> dict[str, Any] | None:
         with self.lock:
