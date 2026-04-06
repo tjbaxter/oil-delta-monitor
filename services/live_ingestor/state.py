@@ -390,7 +390,7 @@ def build_observations(
 
 _FIVE_MIN_MS = 5 * 60 * 1_000
 _MEANINGFUL_CHANGE_CENTS = 0.5  # 0.5¢ = 0.005 in dollar terms
-_LOW_HYSTERESIS_MS = 2 * 60 * 1_000   # stay "low" at least 2 min
+_LOW_HYSTERESIS_MS = 3 * 60 * 1_000   # stay "low" at least 3 min — single ticks shouldn't clear the banner
 _NORMAL_HYSTERESIS_MS = 1 * 60 * 1_000  # stay "normal" at least 1 min
 
 

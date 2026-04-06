@@ -1361,6 +1361,12 @@ export default function DashboardClient({
 
       {hasObservations ? (
         <>
+          {!cmeIsClosed && (
+            <KalshiLiquidityBanner
+              liquidity={kalshiLiquidity}
+              snapshotAgeMs={snapshotAgeMs}
+            />
+          )}
           <section className="charts-grid">
             <HeartbeatChart
               observations={displayChartObservations}
@@ -1377,14 +1383,6 @@ export default function DashboardClient({
                   : null
               }
               resetKey={`${marketInstrument}-${strike}`}
-              liquidityBanner={
-                !cmeIsClosed ? (
-                  <KalshiLiquidityBanner
-                    liquidity={kalshiLiquidity}
-                    snapshotAgeMs={snapshotAgeMs}
-                  />
-                ) : null
-              }
             />
             <ScatterDeltaChart
               observations={scatterObservations}
