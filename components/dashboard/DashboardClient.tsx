@@ -41,7 +41,6 @@ import type {
   BootstrapPayload,
   CrudePoint,
   FeedStatus,
-  KalshiLiquidity,
   Observation,
   ProbabilityPoint,
   SnapshotMode
@@ -1007,7 +1006,8 @@ export default function DashboardClient({
     presentationMode,
     crudeFeedPauseMessage,
     refreshMessage,
-    showSlowLoadNote
+    showSlowLoadNote,
+    cmeIsClosed
   ]);
 
   const loadSnapshot = useCallback(async () => {
