@@ -391,6 +391,10 @@ def build_observations(
 _FIVE_MIN_MS = 5 * 60 * 1_000
 _MEANINGFUL_CHANGE_CENTS = 0.5  # 0.5¢ = 0.005 in dollar terms
 _LOW_HYSTERESIS_MS = 3 * 60 * 1_000   # conditions must be clear for 3 full minutes before banner drops
+# If the mid hasn't moved by ≥0.5¢ in this long, the market is frozen — c4 fires
+# regardless of tick count or stdev.  Handles the stepped/lumpy pattern where
+# occasional larger jumps keep stdev > 1¢ but the market is still clearly thin.
+_STALE_MEANINGFUL_MOVE_MS = 2 * 60 * 1_000  # 2 minutes
 # CL MBP-1 emits ~1 000–2 000 ticks/min; storing every tick fills the 4 000-point
 # crude_history deque in under 3 minutes, leaving only a 3-min orange line instead
 # of the full 20-min chart window.  Rate-limit storage to one point per second —
@@ -461,7 +465,7 @@ class KalshiLiquidityMonitor:
         if spread_dollars is not None and isfinite(spread_dollars):
             self._latest_spread_dollars = spread_dollars
 
-        # Evaluate two-of-three conditions
+        # Evaluate conditions
         mids = [m for _, m in self._mid_window]
         tick_count = len(mids)
         spread_cents = (self._latest_spread_dollars * 100) if self._latest_spread_dollars is not None else None
@@ -470,8 +474,15 @@ class KalshiLiquidityMonitor:
         c2 = (spread_cents is None) or (spread_cents > 5)
         # Threshold raised to 0.01 (1¢): a line oscillating 0.5–1¢ still counts as flat.
         c3 = (len(mids) < 2) or (stdev(mids) < 0.01)
+        # c4: mid hasn't moved meaningfully (≥0.5¢) in 2+ minutes — catches the
+        # stepped/lumpy pattern where occasional larger jumps keep c3 False even
+        # though the market is clearly frozen between jumps.
+        c4 = (
+            self._last_meaningful_ts_ms is not None
+            and (now_ms - self._last_meaningful_ts_ms) > _STALE_MEANINGFUL_MOVE_MS
+        )
 
-        is_thin = sum([c1, c2, c3]) >= 2
+        is_thin = sum([c1, c2, c3]) >= 2 or c4
         desired = "low" if is_thin else "normal"
         # Track the last moment conditions evaluated as thin so the continuous-clear
         # requirement in _apply_hysteresis can use the right reference point.
