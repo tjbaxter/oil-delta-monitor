@@ -8,6 +8,13 @@ const __dirname = path.dirname(__filename);
 const nextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: __dirname,
+
+  // Compress output for smaller bundles
+  compress: true,
+
+  // Optimize production builds
+  productionBrowserSourceMaps: false,
+
   async headers() {
     return [
       {
@@ -15,6 +22,20 @@ const nextConfig = {
         source: "/replay/:file*.json",
         headers: [
           { key: "Cache-Control", value: "public, max-age=3600, stale-while-revalidate=86400" }
+        ]
+      },
+      {
+        // Static assets - aggressive caching (1 year, immutable for hashed files)
+        source: "/_next/static/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" }
+        ]
+      },
+      {
+        // Main page - short cache with SWR for instant reloads
+        source: "/",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=60, stale-while-revalidate=3600" }
         ]
       }
     ];

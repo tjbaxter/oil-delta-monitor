@@ -15,21 +15,31 @@ import {
 } from "@/lib/constants";
 import type { ReplayPayload, SessionListItem } from "@/lib/types";
 
+function ChartSkeleton() {
+  return (
+    <div className="chart-panel chart-panel-skeleton" style={{ minHeight: 340 }}>
+      <span className="status-pill skeleton-pill">Loading chart…</span>
+    </div>
+  );
+}
+
 const HeartbeatChart = dynamic(() => import("@/components/dashboard/HeartbeatChart"), {
   ssr: false,
-  loading: () => <div className="chart-panel" style={{ minHeight: 340 }} />
+  loading: () => <ChartSkeleton />
 });
 
 const ScatterDeltaChart = dynamic(() => import("@/components/dashboard/ScatterDeltaChart"), {
   ssr: false,
-  loading: () => <div className="chart-panel" style={{ minHeight: 340 }} />
+  loading: () => <ChartSkeleton />
 });
 
-const KpiRow = dynamic(() => import("@/components/dashboard/KpiRow"), { ssr: false });
+import KpiRow from "@/components/dashboard/KpiRow";
 
 interface ReplayClientProps {
   appMode: "live" | "replay";
   onToggleAppMode: () => void;
+  initialSessionData?: ReplayPayload | null;
+  initialSessions?: SessionListItem[];
 }
 
 async function fetchSessions(): Promise<SessionListItem[]> {
@@ -86,30 +96,45 @@ function formatStrikeLabel(value: number): string {
   return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
 }
 
-export default function ReplayClient({ appMode, onToggleAppMode }: ReplayClientProps) {
-  const [sessions, setSessions] = useState<SessionListItem[]>([]);
-  const [selectedItem, setSelectedItem] = useState<SessionListItem | null>(null);
-  const [sessionData, setSessionData] = useState<ReplayPayload | null>(null);
+export default function ReplayClient({
+  appMode,
+  onToggleAppMode,
+  initialSessionData = null,
+  initialSessions = []
+}: ReplayClientProps) {
+  const [sessions, setSessions] = useState<SessionListItem[]>(initialSessions);
+  const [selectedItem, setSelectedItem] = useState<SessionListItem | null>(
+    initialSessions.find((s) => s.default) ?? initialSessions[0] ?? null
+  );
+  const [sessionData, setSessionData] = useState<ReplayPayload | null>(initialSessionData);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [hasUsedInitialData, setHasUsedInitialData] = useState(!!initialSessionData);
 
   const { visibleObservations, currentIndex, totalCount, isPlaying, speed,
     currentTimestamp, play, pause, seek, setSpeed, restart } = useReplayEngine(sessionData, 10);
 
-  // Load session list on mount
+  // Load session list on mount (skip if we have initial data from SSR)
   useEffect(() => {
+    if (initialSessions.length > 0) return;
     fetchSessions().then((list) => {
       setSessions(list);
       const def = list.find((s) => s.default) ?? list[0] ?? null;
       if (def) setSelectedItem(def);
     }).catch(() => setSessions([]));
-  }, []);
+  }, [initialSessions.length]);
 
   // Load session data when selected item changes.
-  // For the default curated session use the precomputed static file so the
-  // browser can serve it from cache with no API round-trip.
+  // Skip fetch if we already have initial data from SSR for the default session.
   useEffect(() => {
     if (!selectedItem) return;
+
+    // If this is the first render with SSR data for the default session, skip fetch
+    if (hasUsedInitialData && selectedItem.default && sessionData?.sessionId === selectedItem.id) {
+      setHasUsedInitialData(false);
+      return;
+    }
+
     setIsLoadingSession(true);
     setLoadError(null);
     setSessionData(null);
@@ -129,7 +154,7 @@ export default function ReplayClient({ appMode, onToggleAppMode }: ReplayClientP
     }).finally(() => {
       setIsLoadingSession(false);
     });
-  }, [selectedItem]);
+  }, [selectedItem, hasUsedInitialData, sessionData?.sessionId]);
 
   const handleSessionChange = useCallback((idx: string) => {
     const item = sessions[Number(idx)] ?? null;

@@ -6,19 +6,63 @@ import DashboardClient from "@/components/dashboard/DashboardClient";
 import ReplayClient from "@/components/dashboard/ReplayClient";
 import { getCMEStatus } from "@/lib/cmeCalendar";
 import type { CMEStatus } from "@/lib/cmeCalendar";
-import type { BootstrapPayload, SnapshotMode } from "@/lib/types";
+import type { BootstrapPayload, ReplayPayload, SessionListItem, SnapshotMode } from "@/lib/types";
 
 type AppMode = "live" | "replay";
+
+interface InitialReplayData {
+  sessionData: ReplayPayload | null;
+  sessions: SessionListItem[];
+}
 
 interface DashboardShellProps {
   initialSlug: string;
   initialMode: SnapshotMode;
+  initialReplayData?: InitialReplayData;
 }
 
-export default function DashboardShell({ initialSlug, initialMode }: DashboardShellProps) {
+export default function DashboardShell({ initialSlug, initialMode, initialReplayData }: DashboardShellProps) {
   // Always start in replay — that's what recruiters see on first load.
   // Switch to live on ?mode=live or when the user clicks the toggle.
   const [appMode, setAppMode] = useState<AppMode>("replay");
+
+  // Track when charts are loaded
+  const [chartsReady, setChartsReady] = useState(false);
+
+  // Hide the SSR preview once the interactive charts are actually ready.
+  // We wait for a custom event from the chart components, or a reasonable timeout.
+  useEffect(() => {
+    const hidePreview = () => {
+      const preview = document.getElementById("ssr-preview");
+      if (preview) {
+        preview.style.transition = "opacity 0.3s ease-out";
+        preview.style.opacity = "0";
+        setTimeout(() => {
+          preview.style.display = "none";
+        }, 300);
+      }
+    };
+
+    // Listen for charts-ready event from chart components
+    const handleChartsReady = () => {
+      setChartsReady(true);
+      hidePreview();
+    };
+
+    window.addEventListener("charts-ready", handleChartsReady);
+    
+    // Fallback: hide after charts should be loaded (but keep preview longer)
+    const fallbackTimer = setTimeout(() => {
+      if (!chartsReady) {
+        hidePreview();
+      }
+    }, 8000); // 8 second fallback - charts should be loaded by then
+
+    return () => {
+      window.removeEventListener("charts-ready", handleChartsReady);
+      clearTimeout(fallbackTimer);
+    };
+  }, [chartsReady]);
 
   // Compute cmeStatus here so it's available immediately when toggling to live —
   // DashboardClient receives it as a prop and renders the hero on frame 1.
@@ -80,6 +124,8 @@ export default function DashboardShell({ initialSlug, initialMode }: DashboardSh
         <ReplayClient
           appMode="replay"
           onToggleAppMode={toggleMode}
+          initialSessionData={initialReplayData?.sessionData ?? null}
+          initialSessions={initialReplayData?.sessions ?? []}
         />
       </div>
     </>

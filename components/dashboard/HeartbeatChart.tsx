@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import React, { useMemo, useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 
 import { BG_COLOR, PANEL_BG, POLY_COLOR, THEO_COLOR } from "@/lib/constants";
 import type { Observation } from "@/lib/types";
@@ -302,6 +302,15 @@ export default function HeartbeatChart({
     };
   }, [cmeNote, crudeLabel, marketLegendLabel, observations, pausedMessage, resetKey]);
 
+  // Dispatch event when chart is rendered so SSR preview can be hidden
+  const hasDispatchedRef = useRef(false);
+  const handleAfterPlot = useCallback(() => {
+    if (!hasDispatchedRef.current && typeof window !== "undefined") {
+      hasDispatchedRef.current = true;
+      window.dispatchEvent(new CustomEvent("charts-ready"));
+    }
+  }, []);
+
   return (
     <div className="chart-panel">
       <Plot
@@ -310,6 +319,7 @@ export default function HeartbeatChart({
         config={{ displayModeBar: false, responsive: true }}
         useResizeHandler
         style={{ width: "100%", height: "100%" }}
+        onAfterPlot={handleAfterPlot}
       />
     </div>
   );
