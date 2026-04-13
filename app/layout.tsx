@@ -42,8 +42,24 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Critical CSS inlined to prevent render-blocking */}
+        {/* Critical CSS inlined FIRST to enable immediate paint */}
         <style dangerouslySetInnerHTML={{ __html: criticalCSS }} />
+        {/* 
+          Make Next.js external stylesheet non-blocking by setting media=print.
+          This runs synchronously before the browser processes the stylesheet link.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              document.addEventListener('DOMContentLoaded', function() {
+                var css = document.querySelector('link[href*="/_next/static/css"]');
+                if (css && css.media !== 'all') {
+                  css.media = 'all';
+                }
+              });
+            `
+          }}
+        />
         <link
           rel="preload"
           href="/replay/default-session.json"
