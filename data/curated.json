@@ -1,11 +1,11 @@
 [
   {
-    "id": "20260401_174953",
-    "label": "Apr 1 — Best dislocation window",
-    "description": "00:51–01:27 UTC Apr 2: chart pre-loaded with 10 min of history, animation starts at 01:01:59 UTC.",
+    "id": "20260401_123022",
+    "label": "Apr 1 — Live session",
+    "description": "Live trading session from Apr 1 2026",
     "default": true,
-    "startTs": "2026-04-02T00:55:24Z",
-    "endTs": "2026-04-02T01:27:19Z",
-    "animationStartTs": "2026-04-02T01:12:34Z"
+    "startTs": null,
+    "endTs": null,
+    "animationStartTs": null
   }
 ]
