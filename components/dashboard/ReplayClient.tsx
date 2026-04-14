@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import ModeToggle from "@/components/dashboard/ModeToggle";
 import ReplayControls from "@/components/dashboard/ReplayControls";
@@ -109,7 +109,9 @@ export default function ReplayClient({
   const [sessionData, setSessionData] = useState<ReplayPayload | null>(initialSessionData);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [hasUsedInitialData, setHasUsedInitialData] = useState(!!initialSessionData);
+  // Track whether we've consumed the SSR-provided initial data.
+  // Use a ref instead of state to avoid triggering re-renders/re-fetches.
+  const hasUsedInitialDataRef = useRef(!!initialSessionData);
 
   const { visibleObservations, currentIndex, totalCount, isPlaying, speed,
     currentTimestamp, play, pause, seek, setSpeed, restart } = useReplayEngine(sessionData, 10);
@@ -130,8 +132,8 @@ export default function ReplayClient({
     if (!selectedItem) return;
 
     // If this is the first render with SSR data for the default session, skip fetch
-    if (hasUsedInitialData && selectedItem.default && sessionData?.sessionId === selectedItem.id) {
-      setHasUsedInitialData(false);
+    if (hasUsedInitialDataRef.current && selectedItem.default && sessionData?.sessionId === selectedItem.id) {
+      hasUsedInitialDataRef.current = false;
       return;
     }
 
@@ -154,7 +156,7 @@ export default function ReplayClient({
     }).finally(() => {
       setIsLoadingSession(false);
     });
-  }, [selectedItem, hasUsedInitialData, sessionData?.sessionId]);
+  }, [selectedItem, sessionData?.sessionId]);
 
   const handleSessionChange = useCallback((idx: string) => {
     const item = sessions[Number(idx)] ?? null;
